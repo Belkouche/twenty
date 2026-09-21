@@ -22,6 +22,7 @@ import {
   signInUpStepState,
 } from '@/auth/states/signInUpStepState';
 import { getAvailableWorkspacePathAndSearchParams } from '@/auth/utils/availableWorkspacesUtils';
+import { forgetStayOnDefaultDomainRequest } from '@/domain-manager/utils/forgetStayOnDefaultDomainRequest';
 import { authProvidersState } from '@/client-config/states/authProvidersState';
 import { isDDLLockedState } from '@/client-config/states/isDDLLockedState';
 import { DEFAULT_WORKSPACE_LOGO } from '@/ui/navigation/navigation-drawer/constants/DefaultWorkspaceLogo';
@@ -177,6 +178,7 @@ export const SignInUpGlobalScopeForm = () => {
               >
                 <UndecoratedLink
                   to={getAvailableWorkspaceUrl(availableWorkspace)}
+                  onClick={() => forgetStayOnDefaultDomainRequest()}
                 >
                   <StyledWorkspaceItem>
                     <StyledWorkspaceContent>
