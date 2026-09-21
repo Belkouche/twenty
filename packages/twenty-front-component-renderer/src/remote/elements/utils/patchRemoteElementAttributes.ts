@@ -3,6 +3,7 @@ import { isDefined } from 'twenty-shared/utils';
 
 import { ALLOWED_HTML_ELEMENTS } from '@/constants/AllowedHtmlElements';
 import { isAriaOrDataAttribute } from '@/remote/elements/utils/isAriaOrDataAttribute';
+import { normalizeAriaAttributeValue } from '@/remote/elements/utils/normalizeAriaAttributeValue';
 
 const PROPERTY_MAPPED_ATTRIBUTES = [
   { attributeName: 'for', elementPropertyName: 'htmlFor' },
@@ -126,9 +127,13 @@ export const patchRemoteElementAttributes = (): void => {
     elementConstructor.prototype.setAttribute = function (
       this: RemoteElementWithAttributeUpdater,
       rawAttributeName: string,
-      attributeValue: string,
+      rawAttributeValue: string,
     ) {
       const attributeName = toCanonicalAttributeName(rawAttributeName);
+      const attributeValue = normalizeAriaAttributeValue(
+        attributeName,
+        rawAttributeValue,
+      );
       const mappedElementPropertyName =
         ATTRIBUTE_NAME_TO_ELEMENT_PROPERTY_NAME.get(attributeName);
 

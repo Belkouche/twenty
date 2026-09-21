@@ -11,59 +11,50 @@ import { type TwentyUiGalleryPlayFunction } from '@/__stories__/twenty-ui-galler
 import { expectSandboxErrors } from '@/__stories__/twenty-ui-gallery/utils/expectSandboxErrors';
 
 type CreateFieldControlsTestOptions = {
-  expectedAriaInvalid: '' | 'true';
   expectedReportedValues: string | RegExp;
 };
 
-// React serializes true boolean ARIA attributes as empty strings in the sandbox.
-type CreateCheckboxTestOptions = {
-  expectedAriaTrue: '' | 'true';
+export const checkboxTest: TwentyUiGalleryPlayFunction = async ({
+  canvasElement,
+}) => {
+  const canvas = within(canvasElement);
+  await expectFrontComponentMounted(canvas);
+
+  const checkbox = canvas.getByRole('checkbox', { name: 'Select account' });
+  const uncontrolled = canvas.getByRole('checkbox', {
+    name: 'Uncontrolled selection',
+  });
+  expect(checkbox).not.toBeChecked();
+  expect(uncontrolled).toBeChecked();
+  expect(
+    canvas.getByRole('checkbox', { name: 'Partial selection' }),
+  ).toBePartiallyChecked();
+  const disabled = canvas.getByRole('checkbox', {
+    name: 'Disabled selection',
+  });
+  expect(disabled).toHaveAttribute('aria-disabled', 'true');
+  await userEvent.click(disabled);
+  expect(disabled).not.toBeChecked();
+
+  const readOnly = canvas.getByRole('checkbox', {
+    name: 'Read-only selection',
+  });
+  await userEvent.click(readOnly);
+  expect(readOnly).toBeChecked();
+  expect(errorHandler).not.toHaveBeenCalled();
+
+  // Checkbox activation forwards a click through an unavailable PointerEvent.
+  await userEvent.click(checkbox);
+  await expectSandboxErrors({
+    requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
+  });
+  expect(canvas.getByRole('status')).toHaveTextContent(
+    'Selection: unselected; Changes: 0',
+  );
 };
-
-export const createCheckboxTest =
-  ({
-    expectedAriaTrue,
-  }: CreateCheckboxTestOptions): TwentyUiGalleryPlayFunction =>
-  async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expectFrontComponentMounted(canvas);
-
-    const checkbox = canvas.getByRole('checkbox', { name: 'Select account' });
-    const uncontrolled = canvas.getByRole('checkbox', {
-      name: 'Uncontrolled selection',
-    });
-    expect(checkbox).not.toBeChecked();
-    expect(uncontrolled).toHaveAttribute('aria-checked', expectedAriaTrue);
-    expect(
-      canvas.getByRole('checkbox', { name: 'Partial selection' }),
-    ).toBePartiallyChecked();
-    const disabled = canvas.getByRole('checkbox', {
-      name: 'Disabled selection',
-    });
-    expect(disabled).toHaveAttribute('aria-disabled', expectedAriaTrue);
-    await userEvent.click(disabled);
-    expect(disabled).not.toBeChecked();
-
-    const readOnly = canvas.getByRole('checkbox', {
-      name: 'Read-only selection',
-    });
-    await userEvent.click(readOnly);
-    expect(readOnly).toHaveAttribute('aria-checked', expectedAriaTrue);
-    expect(errorHandler).not.toHaveBeenCalled();
-
-    // Checkbox activation forwards a click through an unavailable PointerEvent.
-    await userEvent.click(checkbox);
-    await expectSandboxErrors({
-      requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
-    });
-    expect(canvas.getByRole('status')).toHaveTextContent(
-      'Selection: unselected; Changes: 0',
-    );
-  };
 
 export const createFieldControlsTest =
   ({
-    expectedAriaInvalid,
     expectedReportedValues,
   }: CreateFieldControlsTestOptions): TwentyUiGalleryPlayFunction =>
   async ({ canvasElement }) => {
@@ -76,7 +67,7 @@ export const createFieldControlsTest =
     expect(email).toHaveAccessibleDescription('Use your work email');
     expect(
       canvas.getByRole('textbox', { name: 'Required name' }),
-    ).toHaveAttribute('aria-invalid', expectedAriaInvalid);
+    ).toBeInvalid();
     expect(canvas.getByText('Name is required')).toBeVisible();
     expect(canvas.getByRole('textbox', { name: 'Reference' })).toHaveValue(
       'REF-42',
@@ -159,14 +150,36 @@ export const sliderTest: TwentyUiGalleryPlayFunction = async ({
   expect(errorHandler).not.toHaveBeenCalled();
 };
 
-type CreateRadioGroupPreactTestOptions = {
-  optionName: 'Daily' | 'Pro plan';
+// The hidden thumbs have no accessible name, so the sliders are matched by
+// their aria-label attribute instead of a name filter.
+export const sliderRangeTest: TwentyUiGalleryPlayFunction = async ({
+  canvasElement,
+}) => {
+  const canvas = within(canvasElement);
+  await expectFrontComponentMounted(canvas);
+  const priceRange = within(canvas.getByRole('group', { name: 'Price range' }));
+  const [minimumThumb, maximumThumb] = priceRange.getAllByRole('slider', {
+    hidden: true,
+  });
+
+  expect(minimumThumb).toHaveAttribute('aria-label', 'Minimum price');
+  expect(minimumThumb).toHaveValue('20');
+  expect(maximumThumb).toHaveAttribute('aria-label', 'Maximum price');
+  expect(maximumThumb).toHaveValue('80');
+  expect(priceRange.getByRole('status')).toHaveTextContent('20 – 80');
+  expect(errorHandler).not.toHaveBeenCalled();
 };
 
-export const createRadioGroupPreactTest =
+type CreateRadioGroupTestOptions = {
+  optionName: 'Daily' | 'Pro plan';
+  activationReachesSandbox: boolean;
+};
+
+export const createRadioGroupTest =
   ({
     optionName,
-  }: CreateRadioGroupPreactTestOptions): TwentyUiGalleryPlayFunction =>
+    activationReachesSandbox,
+  }: CreateRadioGroupTestOptions): TwentyUiGalleryPlayFunction =>
   async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expectFrontComponentMounted(canvas);
@@ -177,15 +190,23 @@ export const createRadioGroupPreactTest =
     expect(disabled).not.toBeChecked();
     expect(canvas.getByRole('radio', { name: 'Basic plan' })).toBeChecked();
 
-    // Preact can report ordering and forwarded-event errors before PointerEvent fails.
     await userEvent.click(canvas.getByRole('radio', { name: optionName }));
-    await expectSandboxErrors({
-      requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
-      allowedAdditionalErrors: [
-        SANDBOX_ERROR_PATTERNS.DOCUMENT_POSITION,
-        SANDBOX_ERROR_PATTERNS.COMPOSED_PATH,
-      ],
-    });
+
+    if (activationReachesSandbox) {
+      // Forwarded-event errors can be reported before PointerEvent fails.
+      await expectSandboxErrors({
+        requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
+        allowedAdditionalErrors: [SANDBOX_ERROR_PATTERNS.COMPOSED_PATH],
+      });
+    } else {
+      // React drops the click handler Base UI adds through cloneElement on
+      // the card's render element, so only the group's focus handling runs
+      // and reports the missing nativeEvent.
+      await expectSandboxErrors({
+        requiredErrors: [SANDBOX_ERROR_PATTERNS.COMPOSED_PATH],
+      });
+    }
+
     expect(canvas.getByText('Frequency: weekly')).toBeVisible();
     expect(canvas.getByText('Plan: basic')).toBeVisible();
   };

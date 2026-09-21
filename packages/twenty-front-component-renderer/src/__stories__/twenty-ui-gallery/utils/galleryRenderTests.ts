@@ -15,15 +15,6 @@ export const dataDisplayTest = createGalleryRenderTest({
   expectedFailedComponents: ['LinkChip'],
 });
 
-// Unselected radios need Element.matches(':disabled'); React radio groups
-// also need compareDocumentPosition, which the sandbox DOM does not implement.
-export const inputReactTest = createGalleryRenderTest({
-  expectedFailedComponents: ['Radio', 'RadioGroup'],
-});
-export const inputPreactTest = createGalleryRenderTest({
-  expectedFailedComponents: ['Radio'],
-});
-
 // react-router Links crash without a router context.
 export const navigationTest = createGalleryRenderTest({
   expectedFailedComponents: ['RawLink', 'UndecoratedLink'],

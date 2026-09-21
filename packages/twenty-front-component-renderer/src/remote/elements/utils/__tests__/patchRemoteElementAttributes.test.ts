@@ -258,6 +258,50 @@ describe('patchRemoteElementAttributes', () => {
     });
   });
 
+  describe('boolean aria attributes written as empty strings', () => {
+    it('should store and forward an empty boolean aria attribute as true', () => {
+      const element =
+        createHtmlDivElement() as RemoteElementWithPropertyUpdater & {
+          updateRemoteAttribute: (
+            attributeName: string,
+            value?: string,
+          ) => void;
+        };
+      const updateRemoteAttribute = jest.spyOn(
+        element,
+        'updateRemoteAttribute',
+      );
+
+      element.setAttribute('aria-invalid', '');
+
+      expect(element.getAttribute('aria-invalid')).toBe('true');
+      expect(updateRemoteAttribute).toHaveBeenCalledWith(
+        'aria-invalid',
+        'true',
+      );
+    });
+
+    it('should keep explicit boolean aria values and non-boolean aria attributes untouched', () => {
+      const element = createHtmlDivElement();
+
+      element.setAttribute('aria-checked', 'mixed');
+      element.setAttribute('aria-expanded', 'false');
+      element.setAttribute('aria-describedby', '');
+
+      expect(element.getAttribute('aria-checked')).toBe('mixed');
+      expect(element.getAttribute('aria-expanded')).toBe('false');
+      expect(element.getAttribute('aria-describedby')).toBe('');
+    });
+
+    it('should leave empty data attributes untouched', () => {
+      const element = createHtmlDivElement();
+
+      element.setAttribute('data-highlighted', '');
+
+      expect(element.getAttribute('data-highlighted')).toBe('');
+    });
+  });
+
   describe('attribute names colliding with Object prototype keys', () => {
     it('should store them as real attributes instead of mapping them to a property', () => {
       const element = createHtmlDivElement();

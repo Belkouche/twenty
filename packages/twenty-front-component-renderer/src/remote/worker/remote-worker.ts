@@ -10,12 +10,19 @@ import { isDefined } from 'twenty-shared/utils';
 import { frontComponentHostCommunicationApi } from '@/remote/worker/thread/states/frontComponentHostCommunicationApi';
 import { HTML_TAG_TO_CUSTOM_ELEMENT_TAG } from '@/constants/HtmlTagToCustomElementTag';
 import { installClipboardPolyfill } from '@/polyfills/clipboard/utils/installClipboardPolyfill';
+import { workerActiveElementStore } from '@/polyfills/dom/states/workerActiveElementStore';
 import { installClassAttributeAccessors } from '@/polyfills/dom/utils/installClassAttributeAccessors';
+import { installCompareDocumentPosition } from '@/polyfills/dom/utils/installCompareDocumentPosition';
+import { installDocumentActiveElement } from '@/polyfills/dom/utils/installDocumentActiveElement';
 import { installDocumentGetElementById } from '@/polyfills/dom/utils/installDocumentGetElementById';
+import { installFocusMethods } from '@/polyfills/dom/utils/installFocusMethods';
 import { installGetComputedStyle } from '@/polyfills/dom/utils/installGetComputedStyle';
 import { installGetElementsByClassName } from '@/polyfills/dom/utils/installGetElementsByClassName';
+import { installGetRootNode } from '@/polyfills/dom/utils/installGetRootNode';
 import { installLocalStyleOnBaseElements } from '@/polyfills/dom/utils/installLocalStyleOnBaseElements';
 import { installMutationObserver } from '@/polyfills/dom/utils/installMutationObserver';
+import { installNodeContains } from '@/polyfills/dom/utils/installNodeContains';
+import { installSelectorMethods } from '@/polyfills/selectors/utils/installSelectorMethods';
 import { workerGeometryStore } from '@/polyfills/geometry/states/workerGeometryStore';
 import { installElementGeometryPolyfill } from '@/polyfills/geometry/utils/installElementGeometryPolyfill';
 import { installWindowGeometryPolyfill } from '@/polyfills/geometry/utils/installWindowGeometryPolyfill';
@@ -51,6 +58,26 @@ installClassAttributeAccessors({
   remoteElementPrototypes: resolveRemoteElementPrototypes(),
 });
 installLocalStyleOnBaseElements(Element.prototype);
+
+installNodeContains(Node.prototype);
+installCompareDocumentPosition({
+  nodeConstructor: Node,
+  nodePrototype: Node.prototype,
+});
+installGetRootNode(Node.prototype);
+installSelectorMethods({
+  elementPrototype: Element.prototype,
+  queryTargets: [Element.prototype, document],
+  resolveActiveElement: () => workerActiveElementStore.getActiveElement(),
+});
+installFocusMethods({
+  elementPrototype: Element.prototype,
+  activeElementStore: workerActiveElementStore,
+});
+installDocumentActiveElement({
+  documentTarget: document,
+  activeElementStore: workerActiveElementStore,
+});
 
 installGetComputedStyle(toGlobalScopeRecord(globalThis));
 

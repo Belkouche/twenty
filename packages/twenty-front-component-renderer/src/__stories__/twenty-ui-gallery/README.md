@@ -44,29 +44,28 @@ No stories are skipped or marked as expected-to-fail by the runner.
 
 | Component | Current limitation |
 | --- | --- |
-| Field controls | Forwarded events lack the native event used for `composedPath`. React serializes boolean `aria-invalid` as an empty string; Textarea's cloned render element loses its change handler in React. The value report checks the state received by the component after typing. |
-| Tabs | React cannot mount without `compareDocumentPosition`; Preact activation fails on the missing native event for `composedPath`. |
-| Popover, AlertDialog | Opening fails while reading unavailable viewport width data. |
-| Menu, Select | Opening fails on viewport data and/or missing `nativeEvent.pointerType`. |
-| Switch | Activation attempts to construct an unavailable `PointerEvent`. |
-| Tooltip | `TooltipReact` opens on hover but remains open after Escape because the SDK does not forward handlers added by `React.cloneElement`. `TooltipPreact` throws on hover because the sandbox lacks `Element.closest`. |
+| Field controls | Forwarded events lack the `nativeEvent` Base UI reads for `composedPath`. Textarea's cloned render element loses its change handler in React. The value report checks the state received by the component after typing. |
+| Tabs | Activation fails on the missing `nativeEvent` for `composedPath` in both runtimes. |
+| Popover, Dialog, AlertDialog | Opening fails while reading pointer contact data from the missing `nativeEvent`. |
+| Menu, Select | Opening fails on the missing `nativeEvent.pointerType` and pointer contact data. |
+| Switch, Checkbox, Radio, CardPicker | Activation attempts to construct an unavailable `PointerEvent`. |
+| Slider | Thumbs stay hidden because the sandbox has no `ResizeObserver` to re-measure after the first geometry batch. |
+| Tooltip | `TooltipReact` opens on hover but remains open after Escape because React drops the handlers Base UI adds through `React.cloneElement`. |
 
-The tooltip stories assert these known failures and must be updated to assert
-successful interactions when compatibility is fixed. The surfaces gallery checks
-that the migrated tooltip mounts in both runtimes. Full tooltip interaction
-coverage remains in twenty-ui's own stories.
+The worker DOM now provides `Node.contains`, `compareDocumentPosition`,
+`getRootNode`, `Element.matches`, `closest`, a selector engine with
+pseudo-classes behind `querySelector`, local `focus`/`blur` with
+`document.activeElement`, and `"true"` for boolean ARIA attributes React writes
+as empty strings. `TooltipPreact` therefore covers hover opening and Escape
+dismissal. Pointer leave still needs document-level `mousemove` delivery for the
+safe polygon, and the compound tooltip's title and description are not covered
+yet.
 
-SDK event handling and sandbox DOM fixes are deferred from the tooltip migration.
-Further gaps found while investigating include forwarded events without
-`nativeEvent` and a `Node.contains` ancestor traversal bug that can hang pointer
-leave handling. After fixing those gaps, cover Escape dismissal, pointer leave,
-and the compound tooltip's title and description in both renderer runtimes.
-
-Once those gaps are fixed, extend the stories to verify selection, disabled
-items, keyboard navigation, and overlay content, dismissal, and focus restoration.
-The fixtures already include the controlled state, compound parts, and callback
-output for those checks. Passing display, ListItem, and Toast stories verify
-rendering/CSS or interaction behavior directly.
+Once the remaining gaps are fixed, extend the stories to verify selection,
+disabled items, keyboard navigation, and overlay content, dismissal, and focus
+restoration. The fixtures already include the controlled state, compound parts,
+and callback output for those checks. Passing display, ListItem, and Toast
+stories verify rendering/CSS or interaction behavior directly.
 
 ## Run
 
