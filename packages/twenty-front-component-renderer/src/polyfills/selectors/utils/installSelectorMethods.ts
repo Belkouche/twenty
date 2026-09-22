@@ -1,4 +1,5 @@
 import { iterateElementSubtree } from '@/polyfills/dom/utils/iterateElementSubtree';
+import { type WorkerNodeList } from '@/polyfills/dom/types/WorkerNodeList';
 import { createWorkerNodeList } from '@/polyfills/dom/utils/createWorkerNodeList';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
 import { type SelectorList } from '@/polyfills/selectors/types/SelectorList';
@@ -87,13 +88,16 @@ export const installSelectorMethods = ({
     return null;
   }
 
-  function querySelectorAll(this: SelectorElementLike, selectors: unknown) {
+  function querySelectorAll(
+    this: SelectorElementLike,
+    selectors: unknown,
+  ): WorkerNodeList<SelectorElementLike> {
     return createWorkerNodeList(
       collectMatchingDescendants(
         this,
         parseSelectorListCached(String(selectors)),
         createMatchContext(this),
-      ) as unknown as Node[],
+      ),
     );
   }
 
