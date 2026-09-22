@@ -92,11 +92,20 @@ describe('installSelectorMethods', () => {
       const { firstTab, secondTab } = createTree(document);
       const checkbox = document.createElement('input') as HTMLInputElement;
       checkbox.checked = true;
+      const uncheckedWithDefault = document.createElement(
+        'input',
+      ) as HTMLInputElement;
+      uncheckedWithDefault.setAttribute('checked', '');
+      uncheckedWithDefault.checked = false;
+      const defaultChecked = document.createElement('input');
+      defaultChecked.setAttribute('checked', '');
 
       expect(secondTab.matches(':disabled')).toBe(true);
       expect(firstTab.matches(':disabled')).toBe(false);
       expect(firstTab.matches(':enabled')).toBe(true);
       expect(checkbox.matches(':checked')).toBe(true);
+      expect(uncheckedWithDefault.matches(':checked')).toBe(false);
+      expect(defaultChecked.matches(':checked')).toBe(true);
       expect(firstTab.matches(':checked')).toBe(false);
     });
 

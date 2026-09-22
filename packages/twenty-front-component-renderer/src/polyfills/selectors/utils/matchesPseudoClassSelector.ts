@@ -1,4 +1,4 @@
-import { isObject } from '@sniptt/guards';
+import { isBoolean, isObject } from '@sniptt/guards';
 import { isDefined } from 'twenty-shared/utils';
 
 import { iterateElementSubtree } from '@/polyfills/dom/utils/iterateElementSubtree';
@@ -22,7 +22,9 @@ const isDisabled = (element: SelectorElementLike): boolean =>
   readElementAttribute(element, 'disabled') !== null;
 
 const isChecked = (element: SelectorElementLike): boolean =>
-  element.checked === true || readElementAttribute(element, 'checked') !== null;
+  isBoolean(element.checked)
+    ? element.checked
+    : readElementAttribute(element, 'checked') !== null;
 
 const isFocused = (
   element: SelectorElementLike,
