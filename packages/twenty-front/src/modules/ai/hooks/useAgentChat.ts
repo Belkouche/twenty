@@ -1,3 +1,4 @@
+import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { getToastOptionsFromError } from '@/error-handler/utils/getToastOptionsFromError';
 import { useToast } from 'twenty-ui/primitives/feedback';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
@@ -147,6 +148,8 @@ export const useAgentChat = (
       ],
       metadata: {
         createdAt: optimisticMessageCreatedAt,
+        senderUserWorkspaceId: store.get(currentWorkspaceMemberState.atom)
+          ?.userWorkspaceId,
       },
       status: 'sent',
     };

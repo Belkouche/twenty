@@ -1716,6 +1716,34 @@ enum NavigationMenuItemType {
   PAGE_LAYOUT
 }
 
+type RecordPermissionsDTO {
+  canRead: Boolean!
+  canUpdate: Boolean!
+  canDelete: Boolean!
+  canSoftDelete: Boolean!
+}
+
+type RecordSharingGrantDTO {
+  id: ID!
+  principalType: String!
+  principalId: UUID!
+  accessLevel: String!
+  rowCause: String!
+}
+
+type RecordSharingRoleDTO {
+  id: UUID!
+  label: String!
+}
+
+type RecordSharingDTO {
+  permissions: RecordPermissionsDTO!
+  isEnabled: Boolean!
+  hasInheritedAccess: Boolean!
+  roles: [RecordSharingRoleDTO!]!
+  shares: [RecordSharingGrantDTO!]!
+}
+
 type JobStatus {
   jobId: String!
   state: JobState!
@@ -3382,6 +3410,7 @@ type AgentChatThread {
   updatedAt: DateTime!
   deletedAt: DateTime
   lastMessageAt: DateTime
+  permissions: RecordPermissionsDTO!
 }
 
 type AiSystemPromptSection {
@@ -3664,6 +3693,7 @@ type MinimalMetadata {
 }
 
 type Query {
+  recordSharing(target: RecordSharingTargetInput!): RecordSharingDTO!
   navigationMenuItems: [NavigationMenuItem!]!
   navigationMenuItem(id: UUID!): NavigationMenuItem
   applicationSdkClientChecksums(applicationId: UUID!): SdkClientChecksums
@@ -3814,6 +3844,11 @@ type Query {
   currentUserApplicationAuthorizations: [ApplicationAuthorization!]!
 }
 
+input RecordSharingTargetInput {
+  objectMetadataId: UUID!
+  recordId: UUID!
+}
+
 input UsageQuotaScopeInput {
   resourceType: UsageResourceType!
   operationType: UsageOperationType!
@@ -3933,6 +3968,7 @@ input BarChartDataInput {
 type Mutation {
   addQueryToEventStream(input: AddQuerySubscriptionInput!): Boolean!
   removeQueryFromEventStream(input: RemoveQueryFromEventStreamInput!): Boolean!
+  setRecordShare(target: RecordSharingTargetInput!, principal: RecordSharePrincipalInput!, enabled: Boolean!, accessLevel: RecordShareAccessLevel = READ): RecordSharingDTO!
   createManyNavigationMenuItems(inputs: [CreateNavigationMenuItemInput!]!): [NavigationMenuItem!]!
   createNavigationMenuItem(input: CreateNavigationMenuItemInput!): NavigationMenuItem!
   updateManyNavigationMenuItems(inputs: [UpdateOneNavigationMenuItemInput!]!): [NavigationMenuItem!]!
@@ -4199,6 +4235,18 @@ input AddQuerySubscriptionInput {
 input RemoveQueryFromEventStreamInput {
   eventStreamId: String!
   queryId: String!
+}
+
+input RecordSharePrincipalInput {
+  workspaceMemberId: UUID
+  roleId: UUID
+  everyone: Boolean
+}
+
+enum RecordShareAccessLevel {
+  READ
+  READ_WRITE
+  FULL
 }
 
 input CreateNavigationMenuItemInput {

@@ -1,5 +1,11 @@
 /* @license Enterprise */
 
+import { type WorkspaceOrmManager } from 'src/engine/twenty-orm/workspace-orm.manager';
+import { type WorkspaceTransactionScope } from 'src/engine/twenty-orm/types/workspace-transaction-scope.type';
+import { AgentChatSharingService } from 'src/engine/metadata-modules/ai/ai-chat/services/agent-chat-sharing.service';
+import { AgentChatService } from 'src/engine/metadata-modules/ai/ai-chat/services/agent-chat.service';
+import { type AgentHistoryStorageContext } from 'src/engine/metadata-modules/ai/ai-history/services/agent-history-storage.service';
+import { USER_WORKSPACE_DATA_SEED_IDS } from 'src/engine/workspace-manager/dev-seeder/core/utils/seed-user-workspaces.util';
 import { randomUUID } from 'node:crypto';
 
 import { createOneOperationFactory } from 'test/integration/graphql/utils/create-one-operation-factory.util';
@@ -64,6 +70,173 @@ describe('recordShare object', () => {
       workspaceId: SEED_APPLE_WORKSPACE_ID,
       sourceId,
     });
+  });
+
+  it('serializes concurrent replacements and preserves other grant sources', async () => {
+    const recordId = randomUUID();
+    const share = { ...recordShareInput, recordId, sourceId: recordId };
+    const workspaceId = SEED_APPLE_WORKSPACE_ID;
+    await recordShareService.insertMany({
+      workspaceId,
+      recordShares: [
+        { ...share, rowCause: RecordShareRowCause.OWNER },
+        { ...share, rowCause: RecordShareRowCause.APPLICATION },
+      ],
+    });
+    const readShares = () =>
+      recordShareService.findByRecordIds({
+        workspaceId,
+        objectMetadataId: personObjectMetadataId,
+        recordIds: [recordId],
+      });
+    try {
+      await Promise.all(
+        Array.from({ length: 8 }, () =>
+          recordShareService.setManualShare({
+            workspaceId,
+            share,
+            enabled: true,
+          }),
+        ),
+      );
+      expect(await readShares()).toHaveLength(3);
+      const manager = getAppProviderByClassName<WorkspaceOrmManager>(
+        'WorkspaceOrmManager',
+      );
+      const runTransaction = manager.runInWorkspaceTransaction.bind(manager);
+      const transactionSpy = jest
+        .spyOn(manager, 'runInWorkspaceTransaction')
+        .mockImplementationOnce(
+          <TResult>(
+            work: (scope: WorkspaceTransactionScope) => Promise<TResult>,
+          ): Promise<TResult> =>
+            runTransaction(async (scope: WorkspaceTransactionScope) => {
+              await work(scope);
+              throw new Error('Abort grant transaction');
+            }),
+        );
+      try {
+        await expect(
+          recordShareService.setManualShare({
+            workspaceId,
+            share,
+            enabled: false,
+          }),
+        ).rejects.toThrow('Abort grant transaction');
+      } finally {
+        transactionSpy.mockRestore();
+      }
+      expect(await readShares()).toHaveLength(3);
+      await recordShareService.setManualShare({
+        workspaceId,
+        share: { ...share, sourceId: randomUUID() },
+        enabled: false,
+      });
+      expect(await readShares()).toHaveLength(2);
+      await recordShareService.setManualShare({
+        workspaceId,
+        share,
+        enabled: false,
+      });
+      expect(
+        (await readShares()).map(({ rowCause }) => rowCause).sort(),
+      ).toEqual(
+        [RecordShareRowCause.OWNER, RecordShareRowCause.APPLICATION].sort(),
+      );
+    } finally {
+      await recordShareService.deleteByRecordIds({
+        workspaceId,
+        objectMetadataId: personObjectMetadataId,
+        recordIds: [recordId],
+      });
+    }
+  });
+
+  it('rolls back thread deletion if grant cleanup fails, then deletes both together', async () => {
+    const chatService =
+      getAppProviderByClassName<AgentChatService>('AgentChatService');
+    const sharingService = getAppProviderByClassName<AgentChatSharingService>(
+      'AgentChatSharingService',
+    );
+    const metadata = await getCoreRepository<ObjectMetadataEntity>(
+      ObjectMetadataEntity,
+    ).findOneOrFail({
+      where: {
+        workspaceId: SEED_APPLE_WORKSPACE_ID,
+        nameSingular: 'agentChatThread',
+      },
+    });
+    const args = {
+      workspaceId: SEED_APPLE_WORKSPACE_ID,
+      userWorkspaceId: USER_WORKSPACE_DATA_SEED_IDS.TIM,
+      threadId: randomUUID(),
+    };
+    await chatService.createThread({
+      ...args,
+      id: args.threadId,
+      title: 'Sharing transaction test',
+    });
+    await recordShareService.setManualShare({
+      workspaceId: args.workspaceId,
+      enabled: true,
+      share: {
+        ...recordShareInput,
+        objectMetadataId: metadata.id,
+        recordId: args.threadId,
+        sourceId: args.threadId,
+      },
+    });
+    const repository = sharingService['threadRepository'];
+    const originalQuery = repository.query.bind(repository);
+    const querySpy = jest.spyOn(repository, 'query').mockImplementation(
+      <TResult>(
+        workspaceId: string,
+        work: (context: AgentHistoryStorageContext) => Promise<TResult>,
+      ): Promise<TResult> =>
+        originalQuery(
+          workspaceId,
+          async (context: AgentHistoryStorageContext) => {
+            const originalManagerQuery = context.manager.query.bind(
+              context.manager,
+            );
+            jest
+              .spyOn(context.manager, 'query')
+              .mockImplementationOnce(originalManagerQuery)
+              .mockRejectedValueOnce(new Error('grant cleanup failed'));
+            return work(context);
+          },
+        ),
+    );
+    try {
+      await expect(sharingService.deleteThreadWithShares(args)).rejects.toThrow(
+        'grant cleanup failed',
+      );
+      querySpy.mockRestore();
+      await expect(chatService.findThreadById(args)).resolves.toMatchObject({
+        id: args.threadId,
+      });
+      await expect(
+        recordShareService.findByRecordIds({
+          workspaceId: args.workspaceId,
+          objectMetadataId: metadata.id,
+          recordIds: [args.threadId],
+        }),
+      ).resolves.toHaveLength(2);
+      await chatService.hardDeleteThread(args);
+      await expect(chatService.findThreadById(args)).resolves.toBeNull();
+      await expect(
+        recordShareService.findByRecordIds({
+          workspaceId: args.workspaceId,
+          objectMetadataId: metadata.id,
+          recordIds: [args.threadId],
+        }),
+      ).resolves.toEqual([]);
+    } finally {
+      querySpy.mockRestore();
+      if (await chatService.findThreadById(args)) {
+        await sharingService.deleteThreadWithShares(args);
+      }
+    }
   });
 
   it.each([false, true])(

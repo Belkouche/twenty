@@ -1,4 +1,6 @@
 import { AttributeChatMessageSendersCommand } from 'src/database/commands/upgrade-version-command/2-42/2-42-workspace-command-1790087156008-attribute-chat-message-senders.command';
+import { BillingModule } from 'src/engine/core-modules/billing/billing.module';
+import { EnableCommonRecordSharingCommand } from 'src/database/commands/upgrade-version-command/2-42/2-42-workspace-command-1790088332299-enable-common-record-sharing.command';
 import { Module } from '@nestjs/common';
 
 import { MigrateAgentHistoryToWorkspaceCommand } from 'src/database/commands/upgrade-version-command/2-42/2-42-workspace-command-1789914239896-migrate-agent-history-to-workspace.command';
@@ -26,6 +28,7 @@ import { GateWorkflowFavoritesByCoreIndexFlagCommand } from 'src/database/comman
 
 @Module({
   imports: [
+    BillingModule,
     AgentHistoryMigrationModule,
     AgentChatStreamStateModule,
     AgentHistoryModule,
@@ -40,6 +43,7 @@ import { GateWorkflowFavoritesByCoreIndexFlagCommand } from 'src/database/comman
   providers: [
     AttributeChatMessageSendersCommand,
     GateWorkflowFavoritesByCoreIndexFlagCommand,
+    EnableCommonRecordSharingCommand,
     MigrateAgentHistoryToWorkspaceCommand,
     UnpinCreationCommandsOnRecordSelectionCommand,
     RelinkWorkflowVersionsToCoreWorkflowsCommand,
