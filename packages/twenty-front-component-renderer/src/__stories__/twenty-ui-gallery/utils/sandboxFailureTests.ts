@@ -31,7 +31,6 @@ export const alertDialogTest = createSandboxFailureTest({
   requiredErrors: [SANDBOX_ERROR_PATTERNS.VIEWPORT_WIDTH],
 });
 
-// Switch activation constructs a PointerEvent, which the sandbox lacks.
 export const switchTest = createSandboxFailureTest({
   trigger: { role: 'switch', name: 'Email notifications' },
   requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
