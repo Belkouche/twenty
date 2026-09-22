@@ -1,15 +1,15 @@
 import { isBoolean } from '@sniptt/guards';
 import { isDefined } from 'twenty-shared/utils';
 
-import { isAncestorOrSelf } from '@/polyfills/dom/utils/isAncestorOrSelf';
+import { isAncestorOrSelfOfNode } from '@/polyfills/dom/utils/isAncestorOrSelfOfNode';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
-import { isDisableableElement } from '@/polyfills/selectors/utils/isDisableableElement';
+import { canElementBeDisabled } from '@/polyfills/selectors/utils/canElementBeDisabled';
 import { isSelectorElementNode } from '@/polyfills/selectors/utils/isSelectorElementNode';
-import { normalizeSelectorTagName } from '@/polyfills/selectors/utils/normalizeSelectorTagName';
-import { readElementAttribute } from '@/polyfills/selectors/utils/readElementAttribute';
+import { normalizeRemoteTagNameToHtmlTagName } from '@/polyfills/selectors/utils/normalizeRemoteTagNameToHtmlTagName';
+import { readElementAttributeOrReflectedProperty } from '@/polyfills/selectors/utils/readElementAttributeOrReflectedProperty';
 import { resolveParentElement } from '@/polyfills/selectors/utils/resolveParentElement';
 
-const FIELDSET_AFFECTED_TAG_NAMES = new Set([
+const TAG_NAMES_DISABLED_BY_ANCESTOR_FIELDSET = new Set([
   'button',
   'fieldset',
   'input',
@@ -17,12 +17,12 @@ const FIELDSET_AFFECTED_TAG_NAMES = new Set([
   'textarea',
 ]);
 
-const hasDisabledState = (element: SelectorElementLike): boolean =>
+const hasOwnDisabledState = (element: SelectorElementLike): boolean =>
   isBoolean(element.disabled)
     ? element.disabled
-    : readElementAttribute(element, 'disabled') !== null;
+    : readElementAttributeOrReflectedProperty(element, 'disabled') !== null;
 
-const isInsideFirstLegend = ({
+const isInsideFirstLegendOfFieldset = ({
   element,
   fieldset,
 }: {
@@ -36,9 +36,9 @@ const isInsideFirstLegend = ({
 
     if (
       isSelectorElementNode(child) &&
-      normalizeSelectorTagName(child.localName ?? '') === 'legend'
+      normalizeRemoteTagNameToHtmlTagName(child.localName ?? '') === 'legend'
     ) {
-      return isAncestorOrSelf(child, element);
+      return isAncestorOrSelfOfNode(child, element);
     }
   }
 
@@ -46,34 +46,36 @@ const isInsideFirstLegend = ({
 };
 
 export const isElementDisabled = (element: SelectorElementLike): boolean => {
-  if (!isDisableableElement(element)) {
+  if (!canElementBeDisabled(element)) {
     return false;
   }
 
-  if (hasDisabledState(element)) {
+  if (hasOwnDisabledState(element)) {
     return true;
   }
 
-  const tagName = normalizeSelectorTagName(element.localName ?? '');
+  const tagName = normalizeRemoteTagNameToHtmlTagName(element.localName ?? '');
   let ancestor = resolveParentElement(element);
 
   if (tagName === 'option') {
     return (
       isDefined(ancestor) &&
-      normalizeSelectorTagName(ancestor.localName ?? '') === 'optgroup' &&
-      hasDisabledState(ancestor)
+      normalizeRemoteTagNameToHtmlTagName(ancestor.localName ?? '') ===
+        'optgroup' &&
+      hasOwnDisabledState(ancestor)
     );
   }
 
-  if (!FIELDSET_AFFECTED_TAG_NAMES.has(tagName)) {
+  if (!TAG_NAMES_DISABLED_BY_ANCESTOR_FIELDSET.has(tagName)) {
     return false;
   }
 
   while (isDefined(ancestor)) {
     if (
-      normalizeSelectorTagName(ancestor.localName ?? '') === 'fieldset' &&
-      hasDisabledState(ancestor) &&
-      !isInsideFirstLegend({ element, fieldset: ancestor })
+      normalizeRemoteTagNameToHtmlTagName(ancestor.localName ?? '') ===
+        'fieldset' &&
+      hasOwnDisabledState(ancestor) &&
+      !isInsideFirstLegendOfFieldset({ element, fieldset: ancestor })
     ) {
       return true;
     }

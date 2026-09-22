@@ -1,8 +1,8 @@
 import { HOOKS, Window } from '@remote-dom/polyfill';
 
 import { createWorkerActiveElementStore } from '../createWorkerActiveElementStore';
-import { installDocumentActiveElement } from '../installDocumentActiveElement';
-import { installFocusMethods } from '../installFocusMethods';
+import { installDocumentActiveElementPolyfill } from '../installDocumentActiveElementPolyfill';
+import { installFocusAndBlurMethodsPolyfill } from '../installFocusAndBlurMethodsPolyfill';
 
 const createPolyfillDocument = (): Document => {
   const polyfillWindow = new Window();
@@ -10,11 +10,11 @@ const createPolyfillDocument = (): Document => {
     hooks: polyfillWindow[HOOKS],
   });
 
-  installFocusMethods({
+  installFocusAndBlurMethodsPolyfill({
     elementPrototype: polyfillWindow.Element.prototype,
     activeElementStore,
   });
-  installDocumentActiveElement({
+  installDocumentActiveElementPolyfill({
     documentTarget: polyfillWindow.document,
     activeElementStore,
   });
@@ -22,7 +22,7 @@ const createPolyfillDocument = (): Document => {
   return polyfillWindow.document as unknown as Document;
 };
 
-describe('installFocusMethods', () => {
+describe('installFocusAndBlurMethodsPolyfill', () => {
   it('should report the body as active before any focus call', () => {
     const document = createPolyfillDocument();
 

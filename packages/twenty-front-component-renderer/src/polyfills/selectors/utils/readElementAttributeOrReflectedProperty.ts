@@ -3,7 +3,7 @@ import { isDefined } from 'twenty-shared/utils';
 
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
 
-export const readElementAttribute = (
+export const readElementAttributeOrReflectedProperty = (
   element: SelectorElementLike,
   attributeName: string,
 ): string | null => {

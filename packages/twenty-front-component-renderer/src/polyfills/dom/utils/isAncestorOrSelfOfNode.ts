@@ -4,7 +4,7 @@ type NodeLike = {
   parentNode?: unknown;
 };
 
-export const isAncestorOrSelf = (
+export const isAncestorOrSelfOfNode = (
   candidateAncestor: object,
   node: unknown,
 ): boolean => {

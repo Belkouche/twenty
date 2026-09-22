@@ -4,15 +4,15 @@ type DocumentWithBody = {
   body?: object | null;
 };
 
-type InstallDocumentActiveElementInput = {
+type InstallDocumentActiveElementPolyfillInput = {
   documentTarget: DocumentWithBody;
   activeElementStore: WorkerActiveElementStore;
 };
 
-export const installDocumentActiveElement = ({
+export const installDocumentActiveElementPolyfill = ({
   documentTarget,
   activeElementStore,
-}: InstallDocumentActiveElementInput): void => {
+}: InstallDocumentActiveElementPolyfillInput): void => {
   Object.defineProperty(documentTarget, 'activeElement', {
     get: () =>
       activeElementStore.getActiveElement() ?? documentTarget.body ?? null,

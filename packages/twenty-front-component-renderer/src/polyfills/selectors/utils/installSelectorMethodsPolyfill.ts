@@ -1,19 +1,19 @@
 import { type WorkerNodeList } from '@/polyfills/dom/types/WorkerNodeList';
 import { createWorkerNodeList } from '@/polyfills/dom/utils/createWorkerNodeList';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
-import { createSelectorMatcher } from '@/polyfills/selectors/utils/createSelectorMatcher';
+import { createSelectorListMatcher } from '@/polyfills/selectors/utils/createSelectorListMatcher';
 import { isSelectorElementNode } from '@/polyfills/selectors/utils/isSelectorElementNode';
-import { workerSelectorAdapter } from '@/polyfills/selectors/utils/workerSelectorAdapter';
+import { workerDomCssSelectAdapter } from '@/polyfills/selectors/utils/workerDomCssSelectAdapter';
 
-type InstallSelectorMethodsInput = {
+type InstallSelectorMethodsPolyfillInput = {
   elementPrototype: object;
-  queryTargets: object[];
+  querySelectorTargets: object[];
   resolveActiveElement: () => object | null;
 };
 
-type SelectorMethod = (
+type SelectorMethodImplementation = (
   this: SelectorElementLike,
-  selectors: unknown,
+  selectorsText: unknown,
 ) => unknown;
 
 const defineSelectorMethod = ({
@@ -23,7 +23,7 @@ const defineSelectorMethod = ({
 }: {
   target: object;
   methodName: string;
-  method: SelectorMethod;
+  method: SelectorMethodImplementation;
 }): void => {
   Object.defineProperty(target, methodName, {
     value: method,
@@ -32,37 +32,40 @@ const defineSelectorMethod = ({
   });
 };
 
-export const installSelectorMethods = ({
+export const installSelectorMethodsPolyfill = ({
   elementPrototype,
-  queryTargets,
+  querySelectorTargets,
   resolveActiveElement,
-}: InstallSelectorMethodsInput): void => {
-  const createMatcher = ({
-    selectors,
+}: InstallSelectorMethodsPolyfillInput): void => {
+  const createMatcherForScope = ({
+    selectorsText,
     scopeElement,
   }: {
-    selectors: unknown;
+    selectorsText: unknown;
     scopeElement: SelectorElementLike;
   }) =>
-    createSelectorMatcher({
-      selectors: String(selectors),
+    createSelectorListMatcher({
+      selectorsText: String(selectorsText),
       scopeElement,
       resolveActiveElement,
     });
 
-  function matches(this: SelectorElementLike, selectors: unknown): boolean {
-    return createMatcher({ selectors, scopeElement: this })(this);
+  function matches(this: SelectorElementLike, selectorsText: unknown): boolean {
+    return createMatcherForScope({ selectorsText, scopeElement: this })(this);
   }
 
   function closest(
     this: SelectorElementLike,
-    selectors: unknown,
+    selectorsText: unknown,
   ): SelectorElementLike | null {
-    const matchesElement = createMatcher({ selectors, scopeElement: this });
+    const isElementMatchingSelectors = createMatcherForScope({
+      selectorsText,
+      scopeElement: this,
+    });
     let currentNode: unknown = this;
 
     while (isSelectorElementNode(currentNode)) {
-      if (matchesElement(currentNode)) {
+      if (isElementMatchingSelectors(currentNode)) {
         return currentNode;
       }
 
@@ -74,27 +77,33 @@ export const installSelectorMethods = ({
 
   function querySelectorAll(
     this: SelectorElementLike,
-    selectors: unknown,
+    selectorsText: unknown,
   ): WorkerNodeList<SelectorElementLike> {
-    const matchesElement = createMatcher({ selectors, scopeElement: this });
+    const isElementMatchingSelectors = createMatcherForScope({
+      selectorsText,
+      scopeElement: this,
+    });
 
     return createWorkerNodeList(
-      workerSelectorAdapter.findAll(
-        matchesElement,
-        workerSelectorAdapter.getChildren(this),
+      workerDomCssSelectAdapter.findAll(
+        isElementMatchingSelectors,
+        workerDomCssSelectAdapter.getChildren(this),
       ),
     );
   }
 
   function querySelector(
     this: SelectorElementLike,
-    selectors: unknown,
+    selectorsText: unknown,
   ): SelectorElementLike | null {
-    const matchesElement = createMatcher({ selectors, scopeElement: this });
+    const isElementMatchingSelectors = createMatcherForScope({
+      selectorsText,
+      scopeElement: this,
+    });
 
-    return workerSelectorAdapter.findOne(
-      matchesElement,
-      workerSelectorAdapter.getChildren(this),
+    return workerDomCssSelectAdapter.findOne(
+      isElementMatchingSelectors,
+      workerDomCssSelectAdapter.getChildren(this),
     );
   }
 
@@ -114,7 +123,7 @@ export const installSelectorMethods = ({
     method: closest,
   });
 
-  for (const target of queryTargets) {
+  for (const target of querySelectorTargets) {
     defineSelectorMethod({
       target,
       methodName: 'querySelectorAll',

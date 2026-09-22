@@ -1,16 +1,16 @@
 import { Window } from '@remote-dom/polyfill';
 
-import { installNodeContains } from '../installNodeContains';
+import { installNodeContainsPolyfill } from '../installNodeContainsPolyfill';
 
 const createPolyfillDocument = (): Document => {
   const polyfillWindow = new Window();
 
-  installNodeContains(polyfillWindow.Node.prototype);
+  installNodeContainsPolyfill(polyfillWindow.Node.prototype);
 
   return polyfillWindow.document as unknown as Document;
 };
 
-describe('installNodeContains', () => {
+describe('installNodeContainsPolyfill', () => {
   it('should return true for the node itself', () => {
     const document = createPolyfillDocument();
     const element = document.createElement('div');

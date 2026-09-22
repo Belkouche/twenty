@@ -1,14 +1,14 @@
 import { type WorkerActiveElementStore } from '@/polyfills/dom/types/WorkerActiveElementStore';
 
-type InstallFocusMethodsInput = {
+type InstallFocusAndBlurMethodsPolyfillInput = {
   elementPrototype: object;
   activeElementStore: WorkerActiveElementStore;
 };
 
-export const installFocusMethods = ({
+export const installFocusAndBlurMethodsPolyfill = ({
   elementPrototype,
   activeElementStore,
-}: InstallFocusMethodsInput): void => {
+}: InstallFocusAndBlurMethodsPolyfillInput): void => {
   Object.defineProperty(elementPrototype, 'focus', {
     value: function (this: object): void {
       activeElementStore.setActiveElement(this);

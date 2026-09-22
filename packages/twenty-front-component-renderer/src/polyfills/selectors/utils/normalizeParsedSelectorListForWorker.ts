@@ -2,10 +2,10 @@ import { isString } from '@sniptt/guards';
 import { isTraversal, type Selector, SelectorType } from 'css-what';
 import { isDefined, isNonEmptyArray } from 'twenty-shared/utils';
 
-import { CONTROL_STATE_PSEUDO_CLASS_NAMES } from '@/polyfills/selectors/constants/ControlStatePseudoClassNames';
-import { normalizeSelectorTagName } from '@/polyfills/selectors/utils/normalizeSelectorTagName';
+import { CUSTOM_PSEUDO_CLASS_NAME_BY_CONTROL_STATE_PSEUDO_CLASS_NAME } from '@/polyfills/selectors/constants/CustomPseudoClassNameByControlStatePseudoClassName';
+import { normalizeRemoteTagNameToHtmlTagName } from '@/polyfills/selectors/utils/normalizeRemoteTagNameToHtmlTagName';
 
-const anchorRelativeSelector = (selectors: Selector[]): Selector[] => {
+const anchorRelativeSelectorToScope = (selectors: Selector[]): Selector[] => {
   const scopeSelector: Selector = {
     type: SelectorType.Pseudo,
     name: 'scope',
@@ -23,9 +23,12 @@ const anchorRelativeSelector = (selectors: Selector[]): Selector[] => {
   ];
 };
 
-const normalizeSelector = (selector: Selector): Selector => {
+const normalizeParsedSelector = (selector: Selector): Selector => {
   if (selector.type === SelectorType.Tag) {
-    return { ...selector, name: normalizeSelectorTagName(selector.name) };
+    return {
+      ...selector,
+      name: normalizeRemoteTagNameToHtmlTagName(selector.name),
+    };
   }
 
   if (selector.type !== SelectorType.Pseudo) {
@@ -34,20 +37,23 @@ const normalizeSelector = (selector: Selector): Selector => {
 
   const data =
     isDefined(selector.data) && !isString(selector.data)
-      ? normalizeWorkerSelectorList(selector.data)
+      ? normalizeParsedSelectorListForWorker(selector.data)
       : selector.data;
 
   return {
     ...selector,
-    name: CONTROL_STATE_PSEUDO_CLASS_NAMES.get(selector.name) ?? selector.name,
+    name:
+      CUSTOM_PSEUDO_CLASS_NAME_BY_CONTROL_STATE_PSEUDO_CLASS_NAME.get(
+        selector.name,
+      ) ?? selector.name,
     data:
       selector.name === 'has' && isDefined(data) && !isString(data)
-        ? data.map(anchorRelativeSelector)
+        ? data.map(anchorRelativeSelectorToScope)
         : data,
   };
 };
 
-export const normalizeWorkerSelectorList = (
+export const normalizeParsedSelectorListForWorker = (
   selectorList: Selector[][],
 ): Selector[][] =>
   selectorList.map((selectors) => {
@@ -58,5 +64,5 @@ export const normalizeWorkerSelectorList = (
       throw new Error('Incomplete selector');
     }
 
-    return selectors.map(normalizeSelector);
+    return selectors.map(normalizeParsedSelector);
   });

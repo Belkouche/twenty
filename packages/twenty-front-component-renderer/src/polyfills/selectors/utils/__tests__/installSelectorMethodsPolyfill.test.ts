@@ -1,6 +1,6 @@
 import { Window } from '@remote-dom/polyfill';
 
-import { installSelectorMethods } from '../installSelectorMethods';
+import { installSelectorMethodsPolyfill } from '../installSelectorMethodsPolyfill';
 
 type SelectorFixture = {
   document: Document;
@@ -11,9 +11,12 @@ const createSelectorFixture = (): SelectorFixture => {
   const polyfillWindow = new Window();
   let activeElement: object | null = null;
 
-  installSelectorMethods({
+  installSelectorMethodsPolyfill({
     elementPrototype: polyfillWindow.Element.prototype,
-    queryTargets: [polyfillWindow.Element.prototype, polyfillWindow.document],
+    querySelectorTargets: [
+      polyfillWindow.Element.prototype,
+      polyfillWindow.document,
+    ],
     resolveActiveElement: () => activeElement,
   });
 
@@ -45,7 +48,7 @@ const createTree = (document: Document) => {
   return { list, firstTab, secondTab, label };
 };
 
-describe('installSelectorMethods', () => {
+describe('installSelectorMethodsPolyfill', () => {
   describe('matches', () => {
     it('should match type, id, class and attribute selectors', () => {
       const { document } = createSelectorFixture();

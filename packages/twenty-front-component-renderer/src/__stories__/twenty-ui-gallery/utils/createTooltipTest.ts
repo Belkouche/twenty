@@ -6,12 +6,12 @@ import { INTERACTION_TIMEOUT } from '@/__stories__/shared/test-utils/timeouts';
 import { type TwentyUiGalleryPlayFunction } from '@/__stories__/twenty-ui-gallery/types/TwentyUiGalleryPlayFunction';
 
 type CreateTooltipTestOptions = {
-  escapeDismisses: boolean;
+  escapeKeyDismissesTooltip: boolean;
 };
 
 export const createTooltipTest =
   ({
-    escapeDismisses,
+    escapeKeyDismissesTooltip,
   }: CreateTooltipTestOptions): TwentyUiGalleryPlayFunction =>
   async ({ canvasElement }) => {
     const user = userEvent.setup();
@@ -37,7 +37,7 @@ export const createTooltipTest =
     expect(exportButton).toHaveFocus();
     await user.keyboard('{Escape}');
 
-    if (escapeDismisses) {
+    if (escapeKeyDismissesTooltip) {
       await waitFor(() =>
         expect(canvas.getByRole('status')).toHaveTextContent(
           'Export help: closed',

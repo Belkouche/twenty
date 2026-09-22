@@ -172,13 +172,13 @@ export const sliderRangeTest: TwentyUiGalleryPlayFunction = async ({
 
 type CreateRadioGroupTestOptions = {
   optionName: 'Daily' | 'Pro plan';
-  activationReachesSandbox: boolean;
+  activationClickReachesSandbox: boolean;
 };
 
 export const createRadioGroupTest =
   ({
     optionName,
-    activationReachesSandbox,
+    activationClickReachesSandbox,
   }: CreateRadioGroupTestOptions): TwentyUiGalleryPlayFunction =>
   async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -192,7 +192,7 @@ export const createRadioGroupTest =
 
     await userEvent.click(canvas.getByRole('radio', { name: optionName }));
 
-    if (activationReachesSandbox) {
+    if (activationClickReachesSandbox) {
       // Forwarded-event errors can be reported before PointerEvent fails.
       await expectSandboxErrors({
         requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],

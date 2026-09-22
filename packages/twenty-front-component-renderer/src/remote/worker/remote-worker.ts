@@ -12,17 +12,17 @@ import { HTML_TAG_TO_CUSTOM_ELEMENT_TAG } from '@/constants/HtmlTagToCustomEleme
 import { installClipboardPolyfill } from '@/polyfills/clipboard/utils/installClipboardPolyfill';
 import { workerActiveElementStore } from '@/polyfills/dom/states/workerActiveElementStore';
 import { installClassAttributeAccessors } from '@/polyfills/dom/utils/installClassAttributeAccessors';
-import { installCompareDocumentPosition } from '@/polyfills/dom/utils/installCompareDocumentPosition';
-import { installDocumentActiveElement } from '@/polyfills/dom/utils/installDocumentActiveElement';
+import { installCompareDocumentPositionPolyfill } from '@/polyfills/dom/utils/installCompareDocumentPositionPolyfill';
+import { installDocumentActiveElementPolyfill } from '@/polyfills/dom/utils/installDocumentActiveElementPolyfill';
 import { installDocumentGetElementById } from '@/polyfills/dom/utils/installDocumentGetElementById';
-import { installFocusMethods } from '@/polyfills/dom/utils/installFocusMethods';
+import { installFocusAndBlurMethodsPolyfill } from '@/polyfills/dom/utils/installFocusAndBlurMethodsPolyfill';
 import { installGetComputedStyle } from '@/polyfills/dom/utils/installGetComputedStyle';
 import { installGetElementsByClassName } from '@/polyfills/dom/utils/installGetElementsByClassName';
-import { installGetRootNode } from '@/polyfills/dom/utils/installGetRootNode';
+import { installGetRootNodePolyfill } from '@/polyfills/dom/utils/installGetRootNodePolyfill';
 import { installLocalStyleOnBaseElements } from '@/polyfills/dom/utils/installLocalStyleOnBaseElements';
 import { installMutationObserver } from '@/polyfills/dom/utils/installMutationObserver';
-import { installNodeContains } from '@/polyfills/dom/utils/installNodeContains';
-import { installSelectorMethods } from '@/polyfills/selectors/utils/installSelectorMethods';
+import { installNodeContainsPolyfill } from '@/polyfills/dom/utils/installNodeContainsPolyfill';
+import { installSelectorMethodsPolyfill } from '@/polyfills/selectors/utils/installSelectorMethodsPolyfill';
 import { workerGeometryStore } from '@/polyfills/geometry/states/workerGeometryStore';
 import { installElementGeometryPolyfill } from '@/polyfills/geometry/utils/installElementGeometryPolyfill';
 import { installWindowGeometryPolyfill } from '@/polyfills/geometry/utils/installWindowGeometryPolyfill';
@@ -33,7 +33,7 @@ import { toGlobalScopeRecord } from '@/polyfills/utils/toGlobalScopeRecord';
 import { installStorageBridge } from '@/polyfills/storage/utils/installStorageBridge';
 import { installWindowAliasesPolyfill } from '@/polyfills/window-aliases/utils/installWindowAliasesPolyfill';
 import { exposeGlobals } from '@/utils/exposeGlobals';
-import { installAriaBooleanAccessors } from '@/remote/elements/utils/installAriaBooleanAccessors';
+import { installAriaBooleanPropertyAccessors } from '@/remote/elements/utils/installAriaBooleanPropertyAccessors';
 import { installStylePropertyOnRemoteElements } from '@/remote/elements/utils/installStylePropertyOnRemoteElements';
 import { patchRemoteElementAttributes } from '@/remote/elements/utils/patchRemoteElementAttributes';
 import { resolveRemoteElementPrototypes } from '@/remote/elements/utils/resolveRemoteElementPrototypes';
@@ -49,7 +49,7 @@ import { createClonableErrorThreadSerialization } from '@/utils/clonable-error/c
 
 installStylePropertyOnRemoteElements();
 patchRemoteElementAttributes();
-installAriaBooleanAccessors();
+installAriaBooleanPropertyAccessors();
 installErrorEventBridge();
 
 installDocumentGetElementById(document);
@@ -61,22 +61,22 @@ installClassAttributeAccessors({
 });
 installLocalStyleOnBaseElements(Element.prototype);
 
-installNodeContains(Node.prototype);
-installCompareDocumentPosition({
+installNodeContainsPolyfill(Node.prototype);
+installCompareDocumentPositionPolyfill({
   nodeConstructor: Node,
   nodePrototype: Node.prototype,
 });
-installGetRootNode(Node.prototype);
-installSelectorMethods({
+installGetRootNodePolyfill(Node.prototype);
+installSelectorMethodsPolyfill({
   elementPrototype: Element.prototype,
-  queryTargets: [Element.prototype, document],
+  querySelectorTargets: [Element.prototype, document],
   resolveActiveElement: () => workerActiveElementStore.getActiveElement(),
 });
-installFocusMethods({
+installFocusAndBlurMethodsPolyfill({
   elementPrototype: Element.prototype,
   activeElementStore: workerActiveElementStore,
 });
-installDocumentActiveElement({
+installDocumentActiveElementPolyfill({
   documentTarget: document,
   activeElementStore: workerActiveElementStore,
 });

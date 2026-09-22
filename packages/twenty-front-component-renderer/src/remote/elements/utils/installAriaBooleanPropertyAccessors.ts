@@ -2,12 +2,12 @@ import { type RemoteElementConstructor as RemoteDomElementConstructor } from '@r
 import { isDefined } from 'twenty-shared/utils';
 
 import { ALLOWED_HTML_ELEMENTS } from '@/constants/AllowedHtmlElements';
-import { ARIA_BOOLEAN_ATTRIBUTE_NAMES } from '@/remote/elements/constants/AriaBooleanAttributeNames';
+import { ARIA_ATTRIBUTE_NAMES_ACCEPTING_BOOLEAN_VALUES } from '@/remote/elements/constants/AriaAttributeNamesAcceptingBooleanValues';
 
 type RemoteElementConstructor = CustomElementConstructor &
   Partial<Pick<RemoteDomElementConstructor, 'remotePropertyDefinitions'>>;
 
-export const installAriaBooleanAccessors = (): void => {
+export const installAriaBooleanPropertyAccessors = (): void => {
   for (const allowedHtmlElement of ALLOWED_HTML_ELEMENTS) {
     const elementConstructor = customElements.get(allowedHtmlElement.tag) as
       | RemoteElementConstructor
@@ -17,7 +17,7 @@ export const installAriaBooleanAccessors = (): void => {
       continue;
     }
 
-    for (const attributeName of ARIA_BOOLEAN_ATTRIBUTE_NAMES) {
+    for (const attributeName of ARIA_ATTRIBUTE_NAMES_ACCEPTING_BOOLEAN_VALUES) {
       if (elementConstructor.remotePropertyDefinitions?.has(attributeName)) {
         continue;
       }

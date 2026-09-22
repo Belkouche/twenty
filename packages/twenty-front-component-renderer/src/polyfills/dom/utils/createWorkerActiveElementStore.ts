@@ -2,14 +2,14 @@ import { type Hooks } from '@remote-dom/polyfill';
 import { isDefined } from 'twenty-shared/utils';
 
 import { type WorkerActiveElementStore } from '@/polyfills/dom/types/WorkerActiveElementStore';
-import { isAncestorOrSelf } from '@/polyfills/dom/utils/isAncestorOrSelf';
+import { isAncestorOrSelfOfNode } from '@/polyfills/dom/utils/isAncestorOrSelfOfNode';
 
-type ConnectableNode = {
+type NodeWithIsConnected = {
   isConnected?: boolean;
 };
 
-const isDetached = (element: object): boolean =>
-  (element as ConnectableNode).isConnected === false;
+const isElementDetachedFromDocument = (element: object): boolean =>
+  (element as NodeWithIsConnected).isConnected === false;
 
 export const createWorkerActiveElementStore = ({
   hooks,
@@ -21,31 +21,34 @@ export const createWorkerActiveElementStore = ({
   }
 
   let activeElement: object | null = null;
-  const removeChild = hooks.removeChild;
+  const previousRemoveChildHook = hooks.removeChild;
 
   hooks.removeChild = (...args) => {
     const [, removedNode] = args;
 
     if (
       isDefined(activeElement) &&
-      isAncestorOrSelf(removedNode, activeElement)
+      isAncestorOrSelfOfNode(removedNode, activeElement)
     ) {
       activeElement = null;
     }
 
-    removeChild?.(...args);
+    previousRemoveChildHook?.(...args);
   };
 
   return {
     getActiveElement: () => {
-      if (isDefined(activeElement) && isDetached(activeElement)) {
+      if (
+        isDefined(activeElement) &&
+        isElementDetachedFromDocument(activeElement)
+      ) {
         activeElement = null;
       }
 
       return activeElement;
     },
     setActiveElement: (element) => {
-      if (isDefined(element) && isDetached(element)) {
+      if (isDefined(element) && isElementDetachedFromDocument(element)) {
         return;
       }
 

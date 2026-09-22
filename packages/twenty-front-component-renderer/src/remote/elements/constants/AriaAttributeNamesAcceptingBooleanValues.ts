@@ -1,4 +1,4 @@
-export const ARIA_BOOLEAN_ATTRIBUTE_NAMES = new Set([
+export const ARIA_ATTRIBUTE_NAMES_ACCEPTING_BOOLEAN_VALUES = new Set([
   'aria-atomic',
   'aria-busy',
   'aria-checked',

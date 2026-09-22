@@ -2,7 +2,7 @@ import '@/remote/generated/remote-elements';
 
 import { patchRemoteElementAttributes } from '@/remote/elements/utils/patchRemoteElementAttributes';
 
-import { installAriaBooleanAccessors } from '../installAriaBooleanAccessors';
+import { installAriaBooleanPropertyAccessors } from '../installAriaBooleanPropertyAccessors';
 
 type RemoteElementWithAriaAccessors = HTMLElement &
   Record<string, unknown> & {
@@ -12,10 +12,10 @@ type RemoteElementWithAriaAccessors = HTMLElement &
 const createHtmlDivElement = (): RemoteElementWithAriaAccessors =>
   document.createElement('html-div') as RemoteElementWithAriaAccessors;
 
-describe('installAriaBooleanAccessors', () => {
+describe('installAriaBooleanPropertyAccessors', () => {
   beforeAll(() => {
     patchRemoteElementAttributes();
-    installAriaBooleanAccessors();
+    installAriaBooleanPropertyAccessors();
   });
 
   it('should expose boolean aria attributes as properties', () => {

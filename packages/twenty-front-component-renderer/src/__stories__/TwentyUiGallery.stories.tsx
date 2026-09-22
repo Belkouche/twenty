@@ -277,13 +277,13 @@ export const PopoverPreact: Story = createGalleryStory({
 export const TooltipReact: Story = createGalleryStory({
   frontComponentBundleName: 'twenty-ui-tooltip',
   runtime: 'react',
-  play: createTooltipTest({ escapeDismisses: false }),
+  play: createTooltipTest({ escapeKeyDismissesTooltip: false }),
 });
 
 export const TooltipPreact: Story = createGalleryStory({
   frontComponentBundleName: 'twenty-ui-tooltip',
   runtime: 'preact',
-  play: createTooltipTest({ escapeDismisses: true }),
+  play: createTooltipTest({ escapeKeyDismissesTooltip: true }),
 });
 
 export const MenuReact: Story = createGalleryStory({
@@ -379,7 +379,7 @@ export const RadioGroupReact: Story = createGalleryStory({
   runtime: 'react',
   play: createRadioGroupTest({
     optionName: 'Daily',
-    activationReachesSandbox: true,
+    activationClickReachesSandbox: true,
   }),
 });
 export const RadioGroupPreact: Story = createGalleryStory({
@@ -387,7 +387,7 @@ export const RadioGroupPreact: Story = createGalleryStory({
   runtime: 'preact',
   play: createRadioGroupTest({
     optionName: 'Daily',
-    activationReachesSandbox: true,
+    activationClickReachesSandbox: true,
   }),
 });
 
@@ -396,7 +396,7 @@ export const CardPickerReact: Story = createGalleryStory({
   runtime: 'react',
   play: createRadioGroupTest({
     optionName: 'Pro plan',
-    activationReachesSandbox: false,
+    activationClickReachesSandbox: false,
   }),
 });
 export const CardPickerPreact: Story = createGalleryStory({
@@ -404,7 +404,7 @@ export const CardPickerPreact: Story = createGalleryStory({
   runtime: 'preact',
   play: createRadioGroupTest({
     optionName: 'Pro plan',
-    activationReachesSandbox: true,
+    activationClickReachesSandbox: true,
   }),
 });
 

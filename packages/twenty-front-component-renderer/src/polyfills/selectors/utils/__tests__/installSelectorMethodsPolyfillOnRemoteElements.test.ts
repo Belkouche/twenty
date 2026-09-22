@@ -1,16 +1,16 @@
 import '@/remote/generated/remote-elements';
 
-import { installSelectorMethods } from '../installSelectorMethods';
+import { installSelectorMethodsPolyfill } from '../installSelectorMethodsPolyfill';
 
-describe('installSelectorMethods on remote elements', () => {
+describe('installSelectorMethodsPolyfill on remote elements', () => {
   it('should use live control properties after an attribute initializes them', () => {
     const button = document.createElement('html-button') as HTMLButtonElement;
     const checkbox = document.createElement('html-input') as HTMLInputElement;
 
     for (const element of [button, checkbox]) {
-      installSelectorMethods({
+      installSelectorMethodsPolyfill({
         elementPrototype: element,
-        queryTargets: [element],
+        querySelectorTargets: [element],
         resolveActiveElement: () => null,
       });
     }

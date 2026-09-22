@@ -1,6 +1,6 @@
 import { Window } from '@remote-dom/polyfill';
 
-import { installCompareDocumentPosition } from '../installCompareDocumentPosition';
+import { installCompareDocumentPositionPolyfill } from '../installCompareDocumentPositionPolyfill';
 
 type PolyfillNodeConstructor = typeof Node;
 
@@ -12,7 +12,7 @@ const createPolyfillDocument = (): {
   const nodeConstructor =
     polyfillWindow.Node as unknown as PolyfillNodeConstructor;
 
-  installCompareDocumentPosition({
+  installCompareDocumentPositionPolyfill({
     nodeConstructor,
     nodePrototype: nodeConstructor.prototype,
   });
@@ -23,7 +23,7 @@ const createPolyfillDocument = (): {
   };
 };
 
-describe('installCompareDocumentPosition', () => {
+describe('installCompareDocumentPositionPolyfill', () => {
   it('should expose the DOCUMENT_POSITION constants on the constructor and on nodes', () => {
     const { document, nodeConstructor } = createPolyfillDocument();
     const element = document.createElement('div');

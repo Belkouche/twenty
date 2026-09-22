@@ -4,7 +4,7 @@ type NodeLike = {
   parentNode?: unknown;
 };
 
-export const collectAncestorChain = (node: unknown): object[] => {
+export const collectAncestorChainFromRootToNode = (node: unknown): object[] => {
   const ancestorChain: object[] = [];
   let currentNode: unknown = node;
 
