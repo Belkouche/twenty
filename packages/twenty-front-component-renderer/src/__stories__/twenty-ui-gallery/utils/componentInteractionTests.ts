@@ -43,7 +43,6 @@ export const checkboxTest: TwentyUiGalleryPlayFunction = async ({
   expect(readOnly).toBeChecked();
   expect(errorHandler).not.toHaveBeenCalled();
 
-  // Checkbox activation forwards a click through an unavailable PointerEvent.
   await userEvent.click(checkbox);
   await expectSandboxErrors({
     requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
@@ -193,15 +192,13 @@ export const createRadioGroupTest =
     await userEvent.click(canvas.getByRole('radio', { name: optionName }));
 
     if (activationClickReachesSandbox) {
-      // Forwarded-event errors can be reported before PointerEvent fails.
       await expectSandboxErrors({
         requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
         allowedAdditionalErrors: [SANDBOX_ERROR_PATTERNS.COMPOSED_PATH],
       });
     } else {
-      // React drops the click handler Base UI adds through cloneElement on
-      // the card's render element, so only the group's focus handling runs
-      // and reports the missing nativeEvent.
+      // React drops the click handler Base UI adds through cloneElement, so
+      // only the group's focus handling reports the missing nativeEvent.
       await expectSandboxErrors({
         requiredErrors: [SANDBOX_ERROR_PATTERNS.COMPOSED_PATH],
       });

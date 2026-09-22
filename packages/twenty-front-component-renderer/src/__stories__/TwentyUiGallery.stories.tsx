@@ -193,7 +193,6 @@ export const ThemeTokensPreact: Story = createGalleryStory({
 export const FieldControlsReact: Story = createGalleryStory({
   frontComponentBundleName: 'twenty-ui-field-controls',
   runtime: 'react',
-  // React loses Textarea's change handler added through cloneElement.
   play: createFieldControlsTest({
     expectedReportedValues: /^Email: alice; Notes:$/,
   }),

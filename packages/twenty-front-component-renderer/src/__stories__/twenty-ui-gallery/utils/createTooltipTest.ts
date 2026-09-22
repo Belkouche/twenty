@@ -50,7 +50,6 @@ export const createTooltipTest =
       return;
     }
 
-    // React loses the Escape handler that Base UI adds through cloneElement.
     await expect(
       waitFor(
         () =>
