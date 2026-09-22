@@ -1,7 +1,8 @@
 import { isNonEmptyString } from '@sniptt/guards';
 
 import { iterateElementSubtree } from '@/polyfills/dom/utils/iterateElementSubtree';
-import { resolveRadioButtonGroupScopeRoot } from '@/polyfills/dom/utils/resolveRadioButtonGroupScopeRoot';
+import { resolveFormOwnerOfElement } from '@/polyfills/dom/utils/resolveFormOwnerOfElement';
+import { resolveTreeRootOfNode } from '@/polyfills/dom/utils/resolveTreeRootOfNode';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
 import { isSelectorElementNode } from '@/polyfills/selectors/utils/isSelectorElementNode';
 import { normalizeRemoteTagNameToHtmlTagName } from '@/polyfills/selectors/utils/normalizeRemoteTagNameToHtmlTagName';
@@ -15,7 +16,7 @@ const isRadioButtonNamed = (
   readElementAttributeOrReflectedProperty(element, 'type') === 'radio' &&
   readElementAttributeOrReflectedProperty(element, 'name') === name;
 
-export const collectRadioButtonsSharingName = (
+export const collectOtherRadioButtonGroupMembers = (
   radioButton: SelectorElementLike,
 ): SelectorElementLike[] => {
   const name = readElementAttributeOrReflectedProperty(radioButton, 'name');
@@ -24,19 +25,21 @@ export const collectRadioButtonsSharingName = (
     return [];
   }
 
-  const radioButtonsSharingName: SelectorElementLike[] = [];
+  const formOwner = resolveFormOwnerOfElement(radioButton);
+  const groupMembers: SelectorElementLike[] = [];
 
   for (const node of iterateElementSubtree(
-    resolveRadioButtonGroupScopeRoot(radioButton),
+    resolveTreeRootOfNode(radioButton),
   )) {
     if (
       isSelectorElementNode(node) &&
       node !== radioButton &&
-      isRadioButtonNamed(node, name)
+      isRadioButtonNamed(node, name) &&
+      resolveFormOwnerOfElement(node) === formOwner
     ) {
-      radioButtonsSharingName.push(node);
+      groupMembers.push(node);
     }
   }
 
-  return radioButtonsSharingName;
+  return groupMembers;
 };
