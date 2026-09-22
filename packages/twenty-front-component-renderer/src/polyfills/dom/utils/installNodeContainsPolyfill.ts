@@ -1,11 +1,11 @@
 import { isAncestorOrSelfOfNode } from '@/polyfills/dom/utils/isAncestorOrSelfOfNode';
+import { definePolyfillMethod } from '@/polyfills/utils/definePolyfillMethod';
 
 export const installNodeContainsPolyfill = (nodePrototype: object): void => {
-  Object.defineProperty(nodePrototype, 'contains', {
-    value: function (this: object, otherNode: unknown): boolean {
-      return isAncestorOrSelfOfNode(this, otherNode);
-    },
-    configurable: true,
-    writable: true,
+  definePolyfillMethod({
+    target: nodePrototype,
+    methodName: 'contains',
+    method: (node: object, otherNode: unknown): boolean =>
+      isAncestorOrSelfOfNode(node, otherNode),
   });
 };

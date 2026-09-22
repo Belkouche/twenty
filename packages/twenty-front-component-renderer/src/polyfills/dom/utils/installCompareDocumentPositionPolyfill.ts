@@ -2,6 +2,7 @@ import { isDefined } from 'twenty-shared/utils';
 
 import { DOCUMENT_POSITION_FLAG_BY_NAME } from '@/polyfills/dom/constants/DocumentPositionFlagByName';
 import { collectAncestorChainFromRootToNode } from '@/polyfills/dom/utils/collectAncestorChainFromRootToNode';
+import { definePolyfillMethod } from '@/polyfills/utils/definePolyfillMethod';
 
 type NodeWithChildNodes = {
   childNodes?: ArrayLike<unknown>;
@@ -66,12 +67,15 @@ export const installCompareDocumentPositionPolyfill = ({
     return order;
   };
 
-  function compareDocumentPosition(this: object, otherNode: unknown): number {
-    if (otherNode === this) {
+  const compareDocumentPosition = (
+    node: object,
+    otherNode: unknown,
+  ): number => {
+    if (otherNode === node) {
       return 0;
     }
 
-    const thisChain = collectAncestorChainFromRootToNode(this);
+    const thisChain = collectAncestorChainFromRootToNode(node);
     const otherChain = collectAncestorChainFromRootToNode(otherNode);
 
     if (thisChain[0] !== otherChain[0]) {
@@ -120,7 +124,7 @@ export const installCompareDocumentPositionPolyfill = ({
     return otherBranchIndex < thisBranchIndex
       ? DOCUMENT_POSITION_FLAG_BY_NAME.PRECEDING
       : DOCUMENT_POSITION_FLAG_BY_NAME.FOLLOWING;
-  }
+  };
 
   for (const [flagName, flagValue] of Object.entries(
     DOCUMENT_POSITION_FLAG_BY_NAME,
@@ -133,9 +137,9 @@ export const installCompareDocumentPositionPolyfill = ({
     }
   }
 
-  Object.defineProperty(nodePrototype, 'compareDocumentPosition', {
-    value: compareDocumentPosition,
-    configurable: true,
-    writable: true,
+  definePolyfillMethod({
+    target: nodePrototype,
+    methodName: 'compareDocumentPosition',
+    method: compareDocumentPosition,
   });
 };

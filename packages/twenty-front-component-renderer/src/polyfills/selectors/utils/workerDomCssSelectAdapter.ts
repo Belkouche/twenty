@@ -35,21 +35,36 @@ const resolveParentNode = (
 ): SelectorElementLike | null =>
   isObject(node.parentNode) ? (node.parentNode as SelectorElementLike) : null;
 
-function* iterateMatchingDescendants({
+const collectMatchingDescendants = ({
   nodes,
   isElementMatching,
+  stopAtFirstMatch,
 }: {
   nodes: SelectorElementLike[];
   isElementMatching: ElementPredicate;
-}): Generator<SelectorElementLike> {
+  stopAtFirstMatch: boolean;
+}): SelectorElementLike[] => {
+  const matchingDescendants: SelectorElementLike[] = [];
+
   for (const node of nodes) {
     for (const descendant of iterateElementSubtree(node)) {
-      if (isSelectorElementNode(descendant) && isElementMatching(descendant)) {
-        yield descendant;
+      if (
+        !isSelectorElementNode(descendant) ||
+        !isElementMatching(descendant)
+      ) {
+        continue;
+      }
+
+      matchingDescendants.push(descendant);
+
+      if (stopAtFirstMatch) {
+        return matchingDescendants;
       }
     }
   }
-}
+
+  return matchingDescendants;
+};
 
 export const workerDomCssSelectAdapter: NonNullable<
   Options<SelectorElementLike, SelectorElementLike>['adapter']
@@ -72,13 +87,23 @@ export const workerDomCssSelectAdapter: NonNullable<
       ? node.textContent
       : '',
   existsOne: (isElementMatching, nodes) =>
-    !iterateMatchingDescendants({ nodes, isElementMatching }).next().done,
+    collectMatchingDescendants({
+      nodes,
+      isElementMatching,
+      stopAtFirstMatch: true,
+    }).length > 0,
   findOne: (isElementMatching, nodes) =>
-    iterateMatchingDescendants({ nodes, isElementMatching }).next().value ??
-    null,
-  findAll: (isElementMatching, nodes) => [
-    ...iterateMatchingDescendants({ nodes, isElementMatching }),
-  ],
+    collectMatchingDescendants({
+      nodes,
+      isElementMatching,
+      stopAtFirstMatch: true,
+    })[0] ?? null,
+  findAll: (isElementMatching, nodes) =>
+    collectMatchingDescendants({
+      nodes,
+      isElementMatching,
+      stopAtFirstMatch: false,
+    }),
   removeSubsets: (nodes) =>
     [...new Set(nodes)].filter(
       (node) =>
