@@ -41,6 +41,8 @@ describe('installFocusMethods', () => {
     const document = createPolyfillDocument();
     const button = document.createElement('button');
 
+    document.body.append(button);
+
     expect(() => button.focus({ preventScroll: true })).not.toThrow();
     expect(document.activeElement).toBe(button);
   });
@@ -50,6 +52,7 @@ describe('installFocusMethods', () => {
     const first = document.createElement('button');
     const second = document.createElement('button');
 
+    document.body.append(first, second);
     first.focus();
     second.focus();
 
@@ -60,8 +63,31 @@ describe('installFocusMethods', () => {
     const document = createPolyfillDocument();
     const button = document.createElement('button');
 
+    document.body.append(button);
     button.focus();
     button.blur();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should fall back to the body once the active element is removed from the document', () => {
+    const document = createPolyfillDocument();
+    const dialog = document.createElement('div');
+    const closeButton = document.createElement('button');
+
+    dialog.append(closeButton);
+    document.body.append(dialog);
+    closeButton.focus();
+    dialog.remove();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should not report a detached element as active', () => {
+    const document = createPolyfillDocument();
+    const button = document.createElement('button');
+
+    button.focus();
 
     expect(document.activeElement).toBe(document.body);
   });
@@ -71,6 +97,7 @@ describe('installFocusMethods', () => {
     const active = document.createElement('button');
     const other = document.createElement('button');
 
+    document.body.append(active, other);
     active.focus();
     other.blur();
 
