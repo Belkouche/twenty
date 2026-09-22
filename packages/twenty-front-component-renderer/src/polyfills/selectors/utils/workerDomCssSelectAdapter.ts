@@ -6,8 +6,8 @@ import { isAncestorOrSelfOfNode } from '@/polyfills/dom/utils/isAncestorOrSelfOf
 import { iterateElementSubtree } from '@/polyfills/dom/utils/iterateElementSubtree';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
 import { isSelectorElementNode } from '@/polyfills/selectors/utils/isSelectorElementNode';
-import { normalizeRemoteTagNameToHtmlTagName } from '@/polyfills/selectors/utils/normalizeRemoteTagNameToHtmlTagName';
 import { readElementAttributeOrReflectedProperty } from '@/polyfills/selectors/utils/readElementAttributeOrReflectedProperty';
+import { resolveHtmlTagNameOfElement } from '@/polyfills/selectors/utils/resolveHtmlTagNameOfElement';
 
 type ElementPredicate = (element: SelectorElementLike) => boolean;
 
@@ -62,8 +62,7 @@ export const workerDomCssSelectAdapter: NonNullable<
 
     return isDefined(parent) ? collectChildNodes(parent) : [node];
   },
-  getName: (element) =>
-    normalizeRemoteTagNameToHtmlTagName(element.localName ?? ''),
+  getName: resolveHtmlTagNameOfElement,
   getAttributeValue: (element, name) =>
     readElementAttributeOrReflectedProperty(element, name) ?? undefined,
   hasAttrib: (element, name) =>

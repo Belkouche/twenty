@@ -3,7 +3,12 @@ import { isTraversal, type Selector, SelectorType } from 'css-what';
 import { isDefined, isNonEmptyArray } from 'twenty-shared/utils';
 
 import { CUSTOM_PSEUDO_CLASS_NAME_BY_CONTROL_STATE_PSEUDO_CLASS_NAME } from '@/polyfills/selectors/constants/CustomPseudoClassNameByControlStatePseudoClassName';
+import { WORKER_SCOPE_PSEUDO_CLASS_NAME } from '@/polyfills/selectors/constants/WorkerScopePseudoClassName';
 import { normalizeRemoteTagNameToHtmlTagName } from '@/polyfills/selectors/utils/normalizeRemoteTagNameToHtmlTagName';
+
+type NormalizeParsedSelectorListForWorkerOptions = {
+  isInsideHasArgument: boolean;
+};
 
 const anchorRelativeSelectorToScope = (selectors: Selector[]): Selector[] => {
   const scopeSelector: Selector = {
@@ -23,7 +28,31 @@ const anchorRelativeSelectorToScope = (selectors: Selector[]): Selector[] => {
   ];
 };
 
-const normalizeParsedSelector = (selector: Selector): Selector => {
+const resolveWorkerPseudoClassName = ({
+  pseudoClassName,
+  isInsideHasArgument,
+}: {
+  pseudoClassName: string;
+  isInsideHasArgument: boolean;
+}): string => {
+  if (pseudoClassName === 'scope' && !isInsideHasArgument) {
+    return WORKER_SCOPE_PSEUDO_CLASS_NAME;
+  }
+
+  return (
+    CUSTOM_PSEUDO_CLASS_NAME_BY_CONTROL_STATE_PSEUDO_CLASS_NAME.get(
+      pseudoClassName,
+    ) ?? pseudoClassName
+  );
+};
+
+const normalizeParsedSelector = ({
+  selector,
+  isInsideHasArgument,
+}: {
+  selector: Selector;
+  isInsideHasArgument: boolean;
+}): Selector => {
   if (selector.type === SelectorType.Tag) {
     return {
       ...selector,
@@ -35,19 +64,22 @@ const normalizeParsedSelector = (selector: Selector): Selector => {
     return selector;
   }
 
+  const isHasPseudoClass = selector.name === 'has';
   const data =
     isDefined(selector.data) && !isString(selector.data)
-      ? normalizeParsedSelectorListForWorker(selector.data)
+      ? normalizeParsedSelectorListForWorker(selector.data, {
+          isInsideHasArgument: isInsideHasArgument || isHasPseudoClass,
+        })
       : selector.data;
 
   return {
     ...selector,
-    name:
-      CUSTOM_PSEUDO_CLASS_NAME_BY_CONTROL_STATE_PSEUDO_CLASS_NAME.get(
-        selector.name,
-      ) ?? selector.name,
+    name: resolveWorkerPseudoClassName({
+      pseudoClassName: selector.name,
+      isInsideHasArgument,
+    }),
     data:
-      selector.name === 'has' && isDefined(data) && !isString(data)
+      isHasPseudoClass && isDefined(data) && !isString(data)
         ? data.map(anchorRelativeSelectorToScope)
         : data,
   };
@@ -55,6 +87,7 @@ const normalizeParsedSelector = (selector: Selector): Selector => {
 
 export const normalizeParsedSelectorListForWorker = (
   selectorList: Selector[][],
+  { isInsideHasArgument }: NormalizeParsedSelectorListForWorkerOptions,
 ): Selector[][] =>
   selectorList.map((selectors) => {
     if (
@@ -64,5 +97,7 @@ export const normalizeParsedSelectorListForWorker = (
       throw new Error('Incomplete selector');
     }
 
-    return selectors.map(normalizeParsedSelector);
+    return selectors.map((selector) =>
+      normalizeParsedSelector({ selector, isInsideHasArgument }),
+    );
   });

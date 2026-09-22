@@ -1,5 +1,5 @@
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
-import { normalizeRemoteTagNameToHtmlTagName } from '@/polyfills/selectors/utils/normalizeRemoteTagNameToHtmlTagName';
+import { resolveHtmlTagNameOfElement } from '@/polyfills/selectors/utils/resolveHtmlTagNameOfElement';
 
 const TAG_NAMES_THAT_CAN_BE_DISABLED = new Set([
   'button',
@@ -12,6 +12,4 @@ const TAG_NAMES_THAT_CAN_BE_DISABLED = new Set([
 ]);
 
 export const canElementBeDisabled = (element: SelectorElementLike): boolean =>
-  TAG_NAMES_THAT_CAN_BE_DISABLED.has(
-    normalizeRemoteTagNameToHtmlTagName(element.localName ?? ''),
-  );
+  TAG_NAMES_THAT_CAN_BE_DISABLED.has(resolveHtmlTagNameOfElement(element));

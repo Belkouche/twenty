@@ -7,6 +7,9 @@ import { ARIA_ATTRIBUTE_NAMES_ACCEPTING_BOOLEAN_VALUES } from '@/remote/elements
 type RemoteElementConstructor = CustomElementConstructor &
   Partial<Pick<RemoteDomElementConstructor, 'remotePropertyDefinitions'>>;
 
+const shouldRemoveAriaAttribute = (value: unknown): boolean =>
+  !isDefined(value) || value === '';
+
 export const installAriaBooleanPropertyAccessors = (): void => {
   for (const allowedHtmlElement of ALLOWED_HTML_ELEMENTS) {
     const elementConstructor = customElements.get(allowedHtmlElement.tag) as
@@ -17,17 +20,29 @@ export const installAriaBooleanPropertyAccessors = (): void => {
       continue;
     }
 
+    const { prototype } = elementConstructor;
+
+    const throwOnPrototypeAccess = (accessedObject: unknown): void => {
+      if (accessedObject === prototype) {
+        throw new TypeError('Illegal invocation');
+      }
+    };
+
     for (const attributeName of ARIA_ATTRIBUTE_NAMES_ACCEPTING_BOOLEAN_VALUES) {
       if (elementConstructor.remotePropertyDefinitions?.has(attributeName)) {
         continue;
       }
 
-      Object.defineProperty(elementConstructor.prototype, attributeName, {
+      Object.defineProperty(prototype, attributeName, {
         get(this: Element) {
+          throwOnPrototypeAccess(this);
+
           return this.getAttribute(attributeName);
         },
         set(this: Element, value: unknown) {
-          if (!isDefined(value)) {
+          throwOnPrototypeAccess(this);
+
+          if (shouldRemoveAriaAttribute(value)) {
             this.removeAttribute(attributeName);
 
             return;

@@ -132,6 +132,60 @@ describe('installFocusAndBlurMethodsPolyfill', () => {
     expect(document.activeElement).toBe(active);
   });
 
+  it('should ignore focus on a disabled control', () => {
+    const document = createPolyfillDocument();
+    const button = document.createElement('button');
+
+    button.setAttribute('disabled', '');
+    document.body.append(button);
+    button.focus();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should ignore focus on elements that are not focusable', () => {
+    const document = createPolyfillDocument();
+    const plainDiv = document.createElement('div');
+    const anchorWithoutHref = document.createElement('a');
+    const hiddenInput = document.createElement('input');
+
+    hiddenInput.setAttribute('type', 'hidden');
+    document.body.append(plainDiv, anchorWithoutHref, hiddenInput);
+    plainDiv.focus();
+    anchorWithoutHref.focus();
+    hiddenInput.focus();
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should focus elements made focusable by tabindex, href or contenteditable', () => {
+    const document = createPolyfillDocument();
+    const container = document.createElement('div');
+    const link = document.createElement('a');
+    const editor = document.createElement('div');
+
+    container.setAttribute('tabindex', '-1');
+    link.setAttribute('href', '/records');
+    editor.setAttribute('contenteditable', '');
+    document.body.append(container, link, editor);
+
+    container.focus();
+    expect(document.activeElement).toBe(container);
+    link.focus();
+    expect(document.activeElement).toBe(link);
+    editor.focus();
+    expect(document.activeElement).toBe(editor);
+  });
+
+  it('should ignore focus called on an object that is not a node', () => {
+    const document = createPolyfillDocument();
+    const focus = document.body.focus as (this: object) => void;
+
+    focus.call({});
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
   it('should ignore blur on an element that is not active', () => {
     const document = createPolyfillDocument();
     const active = document.createElement('button');

@@ -65,6 +65,28 @@ describe('installAriaBooleanPropertyAccessors', () => {
     expect(updateRemoteAttribute).toHaveBeenCalledWith('aria-selected');
   });
 
+  it('should remove the attribute for an empty string property', () => {
+    const element = createHtmlDivElement();
+    element['aria-disabled'] = true;
+    const updateRemoteAttribute = jest.spyOn(element, 'updateRemoteAttribute');
+
+    element['aria-disabled'] = '';
+
+    expect(element.hasAttribute('aria-disabled')).toBe(false);
+    expect(updateRemoteAttribute).toHaveBeenCalledWith('aria-disabled');
+  });
+
+  it('should throw when the accessor is read or written on the prototype', () => {
+    const prototype = Object.getPrototypeOf(
+      createHtmlDivElement(),
+    ) as RemoteElementWithAriaAccessors;
+
+    expect(() => prototype['aria-invalid']).toThrow('Illegal invocation');
+    expect(() => {
+      prototype['aria-invalid'] = true;
+    }).toThrow('Illegal invocation');
+  });
+
   it('should leave an explicit empty attribute value untouched', () => {
     const element = createHtmlDivElement();
 

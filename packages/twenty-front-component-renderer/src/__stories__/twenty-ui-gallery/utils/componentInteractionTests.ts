@@ -66,7 +66,7 @@ export const createFieldControlsTest =
     expect(email).toHaveAccessibleDescription('Use your work email');
     expect(
       canvas.getByRole('textbox', { name: 'Required name' }),
-    ).toBeInvalid();
+    ).toHaveAttribute('aria-invalid', 'true');
     expect(canvas.getByText('Name is required')).toBeVisible();
     expect(canvas.getByRole('textbox', { name: 'Reference' })).toHaveValue(
       'REF-42',

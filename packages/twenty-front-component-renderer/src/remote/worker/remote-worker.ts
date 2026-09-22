@@ -16,6 +16,7 @@ import { installCompareDocumentPositionPolyfill } from '@/polyfills/dom/utils/in
 import { installDocumentActiveElementPolyfill } from '@/polyfills/dom/utils/installDocumentActiveElementPolyfill';
 import { installDocumentGetElementById } from '@/polyfills/dom/utils/installDocumentGetElementById';
 import { installFocusAndBlurMethodsPolyfill } from '@/polyfills/dom/utils/installFocusAndBlurMethodsPolyfill';
+import { installForwardedFocusEventTrackingPolyfill } from '@/polyfills/dom/utils/installForwardedFocusEventTrackingPolyfill';
 import { installGetComputedStyle } from '@/polyfills/dom/utils/installGetComputedStyle';
 import { installGetElementsByClassName } from '@/polyfills/dom/utils/installGetElementsByClassName';
 import { installGetRootNodePolyfill } from '@/polyfills/dom/utils/installGetRootNodePolyfill';
@@ -69,7 +70,11 @@ installCompareDocumentPositionPolyfill({
 installGetRootNodePolyfill(Node.prototype);
 installSelectorMethodsPolyfill({
   elementPrototype: Element.prototype,
-  querySelectorTargets: [Element.prototype, document],
+  querySelectorTargets: [
+    Element.prototype,
+    DocumentFragment.prototype,
+    document,
+  ],
   resolveActiveElement: () => workerActiveElementStore.getActiveElement(),
 });
 installFocusAndBlurMethodsPolyfill({
@@ -77,6 +82,10 @@ installFocusAndBlurMethodsPolyfill({
   activeElementStore: workerActiveElementStore,
 });
 installDocumentActiveElementPolyfill({
+  documentTarget: document,
+  activeElementStore: workerActiveElementStore,
+});
+installForwardedFocusEventTrackingPolyfill({
   documentTarget: document,
   activeElementStore: workerActiveElementStore,
 });

@@ -1,7 +1,7 @@
 import { type WorkerNodeList } from '@/polyfills/dom/types/WorkerNodeList';
 import { createWorkerNodeList } from '@/polyfills/dom/utils/createWorkerNodeList';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
-import { createSelectorListMatcher } from '@/polyfills/selectors/utils/createSelectorListMatcher';
+import { createSelectorMatcherResolver } from '@/polyfills/selectors/utils/createSelectorMatcherResolver';
 import { isSelectorElementNode } from '@/polyfills/selectors/utils/isSelectorElementNode';
 import { workerDomCssSelectAdapter } from '@/polyfills/selectors/utils/workerDomCssSelectAdapter';
 
@@ -37,6 +37,10 @@ export const installSelectorMethodsPolyfill = ({
   querySelectorTargets,
   resolveActiveElement,
 }: InstallSelectorMethodsPolyfillInput): void => {
+  const { resolveSelectorMatcher } = createSelectorMatcherResolver({
+    resolveActiveElement,
+  });
+
   const createMatcherForScope = ({
     selectorsText,
     scopeElement,
@@ -44,10 +48,9 @@ export const installSelectorMethodsPolyfill = ({
     selectorsText: unknown;
     scopeElement: SelectorElementLike;
   }) =>
-    createSelectorListMatcher({
+    resolveSelectorMatcher({
       selectorsText: String(selectorsText),
       scopeElement,
-      resolveActiveElement,
     });
 
   function matches(this: SelectorElementLike, selectorsText: unknown): boolean {

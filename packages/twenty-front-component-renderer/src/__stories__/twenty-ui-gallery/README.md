@@ -8,9 +8,10 @@ file contains the metadata and named entries; `utils/` holds the story factory,
 shared assertions, render checks, interaction checks, and known-failure scenarios.
 Shared types and error patterns live in `types/` and `constants/`.
 `createGalleryRenderTest` checks the
-exact set of expected failed components. `createSandboxFailureTest` distinguishes
-mount failures from click failures; its error expectation requires at least one
-error and can allow additional known errors without requiring them to occur.
+exact set of expected failed components. `createSandboxFailureTest` mounts the
+fixture, clicks a trigger and asserts the sandbox errors; its error expectation
+requires at least one error and can allow additional known errors without
+requiring them to occur.
 
 | Fixture | Components |
 | --- | --- |
@@ -48,15 +49,16 @@ No stories are skipped or marked as expected-to-fail by the runner.
 | Tabs | Activation fails on the missing `nativeEvent` for `composedPath` in both runtimes. |
 | Popover, Dialog, AlertDialog | Opening fails while reading pointer contact data from the missing `nativeEvent`. |
 | Menu, Select | Opening fails on the missing `nativeEvent.pointerType` and pointer contact data. |
-| Switch, Checkbox, Radio, CardPicker | Activation attempts to construct an unavailable `PointerEvent`. |
+| Switch, Checkbox, Radio, CardPicker | Activation attempts to construct an unavailable `PointerEvent`. `CardPickerReact` never gets that far: React drops the click handler Base UI adds through `React.cloneElement`, so only the group's focus handling fails on the missing `nativeEvent` for `composedPath`. |
 | Slider | Thumbs stay hidden because the sandbox has no `ResizeObserver` to re-measure after the first geometry batch. |
 | Tooltip | `TooltipReact` opens on hover but remains open after Escape because React drops the handlers Base UI adds through `React.cloneElement`. |
 
 The worker DOM now provides `Node.contains`, `compareDocumentPosition`,
 `getRootNode`, `Element.matches`, `closest`, `css-select` and `css-what` behind
-`querySelector`, local `focus`/`blur` with
-`document.activeElement`, and property accessors for boolean ARIA attributes so
-React and Preact forward `true`/`false` instead of empty strings.
+`querySelector`, local `focus`/`blur` with `document.activeElement` that also
+mirrors the focus events the page forwards, and property accessors for boolean
+ARIA attributes so React and Preact forward `true`/`false` instead of empty
+strings and remove the attribute when the prop is cleared.
 The selector adapter handles custom element tags, live control properties, and
 relative selectors. Local focus clears when the focused subtree is detached.
 `TooltipPreact` therefore covers hover opening and Escape

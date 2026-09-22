@@ -1,12 +1,11 @@
-import { isBoolean } from '@sniptt/guards';
 import { isDefined } from 'twenty-shared/utils';
 
 import { isAncestorOrSelfOfNode } from '@/polyfills/dom/utils/isAncestorOrSelfOfNode';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
 import { canElementBeDisabled } from '@/polyfills/selectors/utils/canElementBeDisabled';
 import { isSelectorElementNode } from '@/polyfills/selectors/utils/isSelectorElementNode';
-import { normalizeRemoteTagNameToHtmlTagName } from '@/polyfills/selectors/utils/normalizeRemoteTagNameToHtmlTagName';
-import { readElementAttributeOrReflectedProperty } from '@/polyfills/selectors/utils/readElementAttributeOrReflectedProperty';
+import { readBooleanControlState } from '@/polyfills/selectors/utils/readBooleanControlState';
+import { resolveHtmlTagNameOfElement } from '@/polyfills/selectors/utils/resolveHtmlTagNameOfElement';
 import { resolveParentElement } from '@/polyfills/selectors/utils/resolveParentElement';
 
 const TAG_NAMES_DISABLED_BY_ANCESTOR_FIELDSET = new Set([
@@ -18,9 +17,7 @@ const TAG_NAMES_DISABLED_BY_ANCESTOR_FIELDSET = new Set([
 ]);
 
 const hasOwnDisabledState = (element: SelectorElementLike): boolean =>
-  isBoolean(element.disabled)
-    ? element.disabled
-    : readElementAttributeOrReflectedProperty(element, 'disabled') !== null;
+  readBooleanControlState({ element, propertyName: 'disabled' });
 
 const isInsideFirstLegendOfFieldset = ({
   element,
@@ -36,7 +33,7 @@ const isInsideFirstLegendOfFieldset = ({
 
     if (
       isSelectorElementNode(child) &&
-      normalizeRemoteTagNameToHtmlTagName(child.localName ?? '') === 'legend'
+      resolveHtmlTagNameOfElement(child) === 'legend'
     ) {
       return isAncestorOrSelfOfNode(child, element);
     }
@@ -54,14 +51,13 @@ export const isElementDisabled = (element: SelectorElementLike): boolean => {
     return true;
   }
 
-  const tagName = normalizeRemoteTagNameToHtmlTagName(element.localName ?? '');
+  const tagName = resolveHtmlTagNameOfElement(element);
   let ancestor = resolveParentElement(element);
 
   if (tagName === 'option') {
     return (
       isDefined(ancestor) &&
-      normalizeRemoteTagNameToHtmlTagName(ancestor.localName ?? '') ===
-        'optgroup' &&
+      resolveHtmlTagNameOfElement(ancestor) === 'optgroup' &&
       hasOwnDisabledState(ancestor)
     );
   }
@@ -72,8 +68,7 @@ export const isElementDisabled = (element: SelectorElementLike): boolean => {
 
   while (isDefined(ancestor)) {
     if (
-      normalizeRemoteTagNameToHtmlTagName(ancestor.localName ?? '') ===
-        'fieldset' &&
+      resolveHtmlTagNameOfElement(ancestor) === 'fieldset' &&
       hasOwnDisabledState(ancestor) &&
       !isInsideFirstLegendOfFieldset({ element, fieldset: ancestor })
     ) {

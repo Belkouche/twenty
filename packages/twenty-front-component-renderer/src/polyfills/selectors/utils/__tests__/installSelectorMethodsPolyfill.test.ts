@@ -15,6 +15,7 @@ const createSelectorFixture = (): SelectorFixture => {
     elementPrototype: polyfillWindow.Element.prototype,
     querySelectorTargets: [
       polyfillWindow.Element.prototype,
+      polyfillWindow.DocumentFragment.prototype,
       polyfillWindow.document,
     ],
     resolveActiveElement: () => activeElement,
@@ -95,13 +96,16 @@ describe('installSelectorMethodsPolyfill', () => {
       const { document } = createSelectorFixture();
       const { firstTab, secondTab } = createTree(document);
       const checkbox = document.createElement('input') as HTMLInputElement;
+      checkbox.setAttribute('type', 'checkbox');
       checkbox.checked = true;
       const uncheckedWithDefault = document.createElement(
         'input',
       ) as HTMLInputElement;
+      uncheckedWithDefault.setAttribute('type', 'checkbox');
       uncheckedWithDefault.setAttribute('checked', '');
       uncheckedWithDefault.checked = false;
       const defaultChecked = document.createElement('input');
+      defaultChecked.setAttribute('type', 'radio');
       defaultChecked.setAttribute('checked', '');
 
       expect(secondTab.matches(':disabled')).toBe(true);
@@ -382,6 +386,258 @@ describe('installSelectorMethodsPolyfill', () => {
       );
 
       expect(Array.from(candidates)).toEqual([details, summary, input]);
+    });
+  });
+
+  describe('sub-selectors outside the scope subtree', () => {
+    it('should match ancestors through :is, :where and :not', () => {
+      const { document } = createSelectorFixture();
+      const { list, firstTab, secondTab, label } = createTree(document);
+      const container = document.createElement('div');
+      container.setAttribute('class', 'foo');
+      document.body.append(container);
+      container.append(list);
+
+      expect(firstTab.closest(':is(.foo)')).toBe(container);
+      expect(label.closest(':where([role="tablist"])')).toBe(list);
+      expect(label.closest('button:not([disabled])')).toBeNull();
+      expect(secondTab.matches(':not([role="tablist"]) > button')).toBe(false);
+      expect(secondTab.matches(':is([role="tablist"]) > button')).toBe(true);
+      expect(label.matches(':is(.foo) span')).toBe(true);
+      expect(Array.from(list.querySelectorAll(':is(body) button'))).toEqual([
+        firstTab,
+        secondTab,
+      ]);
+    });
+
+    it('should not treat a tabindex="-1" popup ancestor as interactive', () => {
+      const { document } = createSelectorFixture();
+      const popup = document.createElement('div');
+      const content = document.createElement('div');
+      const text = document.createElement('span');
+      popup.setAttribute('tabindex', '-1');
+      popup.append(content);
+      content.append(text);
+      document.body.append(popup);
+
+      expect(
+        text.closest(
+          'button,a[href],[role="button"],select,[tabindex]:not([tabindex="-1"]),input:not([type=\'hidden\']):not([disabled]),textarea:not([disabled]),[contenteditable]:not([contenteditable=\'false\'])',
+        ),
+      ).toBeNull();
+    });
+
+    it('should keep relative :has arguments anchored to the candidate', () => {
+      const { document } = createSelectorFixture();
+      const { list, firstTab, secondTab, label } = createTree(document);
+
+      expect(Array.from(list.querySelectorAll(':has(> span)'))).toEqual([
+        secondTab,
+      ]);
+      expect(label.closest(':has(> span)')).toBe(secondTab);
+      expect(
+        Array.from(document.querySelectorAll('button:has(+ button)')),
+      ).toEqual([firstTab]);
+    });
+
+    it('should exclude the scoping root from document-scoped :scope queries', () => {
+      const { document } = createSelectorFixture();
+
+      const descendants = Array.from(document.querySelectorAll(':scope *'));
+
+      expect(descendants).not.toContain(document.documentElement);
+      expect(descendants).toContain(document.body);
+    });
+
+    it('should resolve :scope per call when the same selector is reused', () => {
+      const { document } = createSelectorFixture();
+      const { list, firstTab, secondTab } = createTree(document);
+
+      expect(Array.from(list.querySelectorAll(':scope > button'))).toEqual([
+        firstTab,
+        secondTab,
+      ]);
+      expect(Array.from(firstTab.querySelectorAll(':scope > button'))).toEqual(
+        [],
+      );
+      expect(firstTab.matches(':scope')).toBe(true);
+      expect(secondTab.matches(':scope')).toBe(true);
+      expect(firstTab.matches(':not(:scope)')).toBe(false);
+    });
+  });
+
+  describe('attribute selectors', () => {
+    it('should match attribute names case-insensitively', () => {
+      const { document } = createSelectorFixture();
+      const { firstTab } = createTree(document);
+      firstTab.setAttribute('data-testId', 'abc');
+      firstTab.setAttribute('contentEditable', '');
+
+      expect(firstTab.matches('[data-testId="abc"]')).toBe(true);
+      expect(firstTab.matches('[data-testid="abc"]')).toBe(true);
+      expect(document.querySelector('[data-testid]')).toBe(firstTab);
+      expect(
+        firstTab.matches('[contenteditable]:not([contenteditable="false"])'),
+      ).toBe(true);
+    });
+
+    it('should not treat inherited element accessors as attributes', () => {
+      const { document } = createSelectorFixture();
+      const { firstTab } = createTree(document);
+
+      expect(firstTab.matches('[slot]')).toBe(false);
+      expect(firstTab.matches(':not([slot])')).toBe(true);
+      expect(document.querySelectorAll('[slot]')).toHaveLength(0);
+      firstTab.setAttribute('slot', 'actions');
+      expect(firstTab.matches('[slot="actions"]')).toBe(true);
+    });
+  });
+
+  describe('control state pseudo-classes', () => {
+    it('should restrict :checked to checkable inputs and options', () => {
+      const { document } = createSelectorFixture();
+      const checkedDiv = document.createElement('div');
+      const checkedText = document.createElement('input');
+      const checkedRadio = document.createElement('input');
+      const selectedOption = document.createElement(
+        'option',
+      ) as HTMLOptionElement;
+      checkedDiv.setAttribute('checked', '');
+      checkedText.setAttribute('type', 'text');
+      checkedText.setAttribute('checked', '');
+      checkedRadio.setAttribute('type', 'RADIO');
+      checkedRadio.setAttribute('checked', '');
+      selectedOption.selected = true;
+      document.body.append(
+        checkedDiv,
+        checkedText,
+        checkedRadio,
+        selectedOption,
+      );
+
+      expect(checkedDiv.matches(':checked')).toBe(false);
+      expect(checkedText.matches(':checked')).toBe(false);
+      expect(checkedRadio.matches(':checked')).toBe(true);
+      expect(selectedOption.matches(':checked')).toBe(true);
+      expect(Array.from(document.querySelectorAll(':checked'))).toEqual([
+        checkedRadio,
+        selectedOption,
+      ]);
+    });
+
+    it('should evaluate :read-only, :read-write and :placeholder-shown', () => {
+      const { document } = createSelectorFixture();
+      const { firstTab } = createTree(document);
+      const textInput = document.createElement('input') as HTMLInputElement;
+      const readOnlyInput = document.createElement('input');
+      const disabledTextarea = document.createElement('textarea');
+      const editor = document.createElement('div');
+      const nestedEditorText = document.createElement('span');
+      readOnlyInput.setAttribute('readonly', '');
+      disabledTextarea.setAttribute('disabled', '');
+      editor.setAttribute('contenteditable', 'true');
+      editor.append(nestedEditorText);
+      textInput.setAttribute('placeholder', 'Search');
+      document.body.append(textInput, readOnlyInput, disabledTextarea, editor);
+
+      expect(firstTab.matches(':read-only')).toBe(true);
+      expect(textInput.matches(':read-write')).toBe(true);
+      expect(readOnlyInput.matches(':read-only')).toBe(true);
+      expect(disabledTextarea.matches(':read-only')).toBe(true);
+      expect(nestedEditorText.matches(':read-write')).toBe(true);
+      expect(textInput.matches(':placeholder-shown')).toBe(true);
+      textInput.value = 'acme';
+      expect(textInput.matches(':placeholder-shown')).toBe(false);
+    });
+
+    it('should evaluate :indeterminate, :valid, :open and :defined', () => {
+      const { document } = createSelectorFixture();
+      const checkbox = document.createElement('input') as HTMLInputElement;
+      const progress = document.createElement('progress');
+      const details = document.createElement('details');
+      const plainDiv = document.createElement('div');
+      checkbox.setAttribute('type', 'checkbox');
+      checkbox.indeterminate = true;
+      details.setAttribute('open', '');
+      document.body.append(checkbox, progress, details, plainDiv);
+
+      expect(checkbox.matches(':indeterminate')).toBe(true);
+      expect(progress.matches(':indeterminate')).toBe(true);
+      expect(plainDiv.matches(':indeterminate')).toBe(false);
+      expect(checkbox.matches(':valid')).toBe(true);
+      expect(plainDiv.matches(':valid')).toBe(false);
+      expect(checkbox.matches(':invalid')).toBe(false);
+      expect(details.matches(':open')).toBe(true);
+      expect(plainDiv.matches(':open')).toBe(false);
+      expect(plainDiv.matches(':defined')).toBe(true);
+    });
+
+    it('should evaluate :lang and :dir from the nearest ancestor attributes', () => {
+      const { document } = createSelectorFixture();
+      const article = document.createElement('article');
+      const paragraph = document.createElement('p');
+      const quote = document.createElement('q');
+      article.setAttribute('lang', 'en-US');
+      article.setAttribute('dir', 'rtl');
+      quote.setAttribute('lang', 'fr');
+      article.append(paragraph);
+      paragraph.append(quote);
+      document.body.append(article);
+
+      expect(paragraph.matches(':lang(en)')).toBe(true);
+      expect(paragraph.matches(':lang("en-US")')).toBe(true);
+      expect(paragraph.matches(':lang(fr, en)')).toBe(true);
+      expect(paragraph.matches(':lang(fr)')).toBe(false);
+      expect(quote.matches(':lang(fr)')).toBe(true);
+      expect(document.body.matches(':lang(en)')).toBe(false);
+      expect(paragraph.matches(':dir(rtl)')).toBe(true);
+      expect(paragraph.matches(':dir(ltr)')).toBe(false);
+      expect(document.body.matches(':dir(ltr)')).toBe(true);
+    });
+
+    it('should treat pseudo-classes the sandbox cannot observe as unmatched', () => {
+      const { document } = createSelectorFixture();
+      const { firstTab } = createTree(document);
+
+      expect(firstTab.matches(':popover-open')).toBe(false);
+      expect(firstTab.matches(':modal')).toBe(false);
+      expect(firstTab.matches(':host')).toBe(false);
+      expect(firstTab.matches(':state(pressed)')).toBe(false);
+      expect(firstTab.matches(':not(:popover-open)')).toBe(true);
+    });
+  });
+
+  describe(':root', () => {
+    it('should match only the document element', () => {
+      const { document } = createSelectorFixture();
+      const detached = document.createElement('div');
+      const detachedChild = document.createElement('span');
+      const fragment = document.createDocumentFragment();
+      const fragmentChild = document.createElement('div');
+      detached.append(detachedChild);
+      fragment.append(fragmentChild);
+
+      expect(document.documentElement.matches(':root')).toBe(true);
+      expect(detached.matches(':root')).toBe(false);
+      expect(detachedChild.closest(':root')).toBeNull();
+      expect(fragmentChild.matches(':root')).toBe(false);
+    });
+  });
+
+  describe('DocumentFragment', () => {
+    it('should query fragments with the worker selector engine', () => {
+      const { document } = createSelectorFixture();
+      const fragment = document.createDocumentFragment();
+      const button = document.createElement('html-button') as Element;
+      const span = document.createElement('span');
+      button.setAttribute('disabled', '');
+      fragment.append(button, span);
+
+      expect(fragment.querySelector(':disabled')).toBe(button);
+      expect(fragment.querySelector('button')).toBe(button);
+      expect(
+        Array.from(fragment.querySelectorAll('span:first-of-type')),
+      ).toEqual([span]);
     });
   });
 });

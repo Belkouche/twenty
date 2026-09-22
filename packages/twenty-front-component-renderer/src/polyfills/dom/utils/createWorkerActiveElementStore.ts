@@ -8,8 +8,8 @@ type NodeWithIsConnected = {
   isConnected?: boolean;
 };
 
-const isElementDetachedFromDocument = (element: object): boolean =>
-  (element as NodeWithIsConnected).isConnected === false;
+const isElementConnectedToDocument = (element: object): boolean =>
+  (element as NodeWithIsConnected).isConnected === true;
 
 export const createWorkerActiveElementStore = ({
   hooks,
@@ -23,24 +23,22 @@ export const createWorkerActiveElementStore = ({
   let activeElement: object | null = null;
   const previousRemoveChildHook = hooks.removeChild;
 
-  hooks.removeChild = (...args) => {
-    const [, removedNode] = args;
-
+  hooks.removeChild = (parent, node, index) => {
     if (
       isDefined(activeElement) &&
-      isAncestorOrSelfOfNode(removedNode, activeElement)
+      isAncestorOrSelfOfNode(node, activeElement)
     ) {
       activeElement = null;
     }
 
-    previousRemoveChildHook?.(...args);
+    previousRemoveChildHook?.(parent, node, index);
   };
 
   return {
     getActiveElement: () => {
       if (
         isDefined(activeElement) &&
-        isElementDetachedFromDocument(activeElement)
+        !isElementConnectedToDocument(activeElement)
       ) {
         activeElement = null;
       }
@@ -48,7 +46,7 @@ export const createWorkerActiveElementStore = ({
       return activeElement;
     },
     setActiveElement: (element) => {
-      if (isDefined(element) && isElementDetachedFromDocument(element)) {
+      if (isDefined(element) && !isElementConnectedToDocument(element)) {
         return;
       }
 

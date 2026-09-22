@@ -1,4 +1,6 @@
 import { type WorkerActiveElementStore } from '@/polyfills/dom/types/WorkerActiveElementStore';
+import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
+import { isElementFocusable } from '@/polyfills/selectors/utils/isElementFocusable';
 
 type InstallFocusAndBlurMethodsPolyfillInput = {
   elementPrototype: object;
@@ -10,7 +12,11 @@ export const installFocusAndBlurMethodsPolyfill = ({
   activeElementStore,
 }: InstallFocusAndBlurMethodsPolyfillInput): void => {
   Object.defineProperty(elementPrototype, 'focus', {
-    value: function (this: object): void {
+    value: function (this: SelectorElementLike): void {
+      if (!isElementFocusable(this)) {
+        return;
+      }
+
       activeElementStore.setActiveElement(this);
     },
     configurable: true,
