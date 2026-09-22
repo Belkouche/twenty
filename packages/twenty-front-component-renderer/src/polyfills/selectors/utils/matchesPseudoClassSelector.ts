@@ -1,6 +1,7 @@
 import { isBoolean, isObject } from '@sniptt/guards';
 import { isDefined } from 'twenty-shared/utils';
 
+import { isAncestorOrSelf } from '@/polyfills/dom/utils/isAncestorOrSelf';
 import { iterateElementSubtree } from '@/polyfills/dom/utils/iterateElementSubtree';
 import { type SelectorElementLike } from '@/polyfills/selectors/types/SelectorElementLike';
 import { type SelectorList } from '@/polyfills/selectors/types/SelectorList';
@@ -34,19 +35,7 @@ const isFocused = (
 const containsFocus = (
   element: SelectorElementLike,
   context: SelectorMatchContext,
-): boolean => {
-  let currentNode: unknown = context.resolveActiveElement();
-
-  while (isObject(currentNode)) {
-    if (currentNode === element) {
-      return true;
-    }
-
-    currentNode = (currentNode as SelectorElementLike).parentNode;
-  }
-
-  return false;
-};
+): boolean => isAncestorOrSelf(element, context.resolveActiveElement());
 
 const hasMatchingDescendant = (
   element: SelectorElementLike,
