@@ -6,9 +6,7 @@ import {
   INTERACTION_TIMEOUT,
   TYPING_DELAY,
 } from '@/__stories__/shared/test-utils/timeouts';
-import { SANDBOX_ERROR_PATTERNS } from '@/__stories__/twenty-ui-gallery/constants/SANDBOX_ERROR_PATTERNS';
 import { type TwentyUiGalleryPlayFunction } from '@/__stories__/twenty-ui-gallery/types/TwentyUiGalleryPlayFunction';
-import { expectSandboxErrors } from '@/__stories__/twenty-ui-gallery/utils/expectSandboxErrors';
 
 type CreateFieldControlsTestOptions = {
   expectedReportedValues: string | RegExp;
@@ -44,12 +42,16 @@ export const checkboxTest: TwentyUiGalleryPlayFunction = async ({
   expect(errorHandler).not.toHaveBeenCalled();
 
   await userEvent.click(checkbox);
-  await expectSandboxErrors({
-    requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
-  });
-  expect(canvas.getByRole('status')).toHaveTextContent(
-    'Selection: unselected; Changes: 0',
+  await waitFor(() =>
+    expect(canvas.getByRole('status')).toHaveTextContent(
+      'Selection: selected; Changes: 1',
+    ),
   );
+  expect(checkbox).toBeChecked();
+
+  await userEvent.click(uncontrolled);
+  await waitFor(() => expect(uncontrolled).not.toBeChecked());
+  expect(errorHandler).not.toHaveBeenCalled();
 };
 
 export const createFieldControlsTest =
@@ -87,9 +89,7 @@ export const createFieldControlsTest =
         expectedReportedValues,
       ),
     );
-    await expectSandboxErrors({
-      requiredErrors: [SANDBOX_ERROR_PATTERNS.COMPOSED_PATH],
-    });
+    expect(errorHandler).not.toHaveBeenCalled();
   };
 
 export const toastTest: TwentyUiGalleryPlayFunction = async ({
@@ -169,15 +169,28 @@ export const sliderRangeTest: TwentyUiGalleryPlayFunction = async ({
   expect(errorHandler).not.toHaveBeenCalled();
 };
 
+const RADIO_GROUP_STATUSES_BY_OPTION_NAME = {
+  Daily: {
+    initiallyCheckedOptionName: 'Weekly',
+    initialStatus: 'Frequency: weekly',
+    activatedStatus: 'Frequency: daily',
+  },
+  'Pro plan': {
+    initiallyCheckedOptionName: 'Basic plan',
+    initialStatus: 'Plan: basic',
+    activatedStatus: 'Plan: pro',
+  },
+};
+
 type CreateRadioGroupTestOptions = {
-  optionName: 'Daily' | 'Pro plan';
-  activationClickReachesSandbox: boolean;
+  optionName: keyof typeof RADIO_GROUP_STATUSES_BY_OPTION_NAME;
+  clickActivatesOption: boolean;
 };
 
 export const createRadioGroupTest =
   ({
     optionName,
-    activationClickReachesSandbox,
+    clickActivatesOption,
   }: CreateRadioGroupTestOptions): TwentyUiGalleryPlayFunction =>
   async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -189,21 +202,31 @@ export const createRadioGroupTest =
     expect(disabled).not.toBeChecked();
     expect(canvas.getByRole('radio', { name: 'Basic plan' })).toBeChecked();
 
-    await userEvent.click(canvas.getByRole('radio', { name: optionName }));
+    const { initiallyCheckedOptionName, initialStatus, activatedStatus } =
+      RADIO_GROUP_STATUSES_BY_OPTION_NAME[optionName];
+    const option = canvas.getByRole('radio', { name: optionName });
+    const initiallyCheckedOption = canvas.getByRole('radio', {
+      name: initiallyCheckedOptionName,
+    });
 
-    if (activationClickReachesSandbox) {
-      await expectSandboxErrors({
-        requiredErrors: [SANDBOX_ERROR_PATTERNS.POINTER_EVENT_CONSTRUCTOR],
-        allowedAdditionalErrors: [SANDBOX_ERROR_PATTERNS.COMPOSED_PATH],
-      });
-    } else {
-      // React drops the click handler Base UI adds through cloneElement, so
-      // only the group's focus handling reports the missing nativeEvent.
-      await expectSandboxErrors({
-        requiredErrors: [SANDBOX_ERROR_PATTERNS.COMPOSED_PATH],
-      });
+    await userEvent.click(option);
+
+    if (clickActivatesOption) {
+      await waitFor(() =>
+        expect(canvas.getByText(activatedStatus)).toBeVisible(),
+      );
+      expect(option).toBeChecked();
+      expect(initiallyCheckedOption).not.toBeChecked();
+      expect(errorHandler).not.toHaveBeenCalled();
+      return;
     }
 
-    expect(canvas.getByText('Frequency: weekly')).toBeVisible();
-    expect(canvas.getByText('Plan: basic')).toBeVisible();
+    await expect(
+      waitFor(() => expect(canvas.getByText(activatedStatus)).toBeVisible(), {
+        timeout: INTERACTION_TIMEOUT,
+      }),
+    ).rejects.toThrow();
+    expect(canvas.getByText(initialStatus)).toBeVisible();
+    expect(initiallyCheckedOption).toBeChecked();
+    expect(errorHandler).not.toHaveBeenCalled();
   };

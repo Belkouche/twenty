@@ -35,14 +35,12 @@ import {
   navigationTest,
   themeTokenTest,
 } from '@/__stories__/twenty-ui-gallery/utils/galleryRenderTests';
-import {
-  alertDialogTest,
-  menuTest,
-  popoverTest,
-  selectTest,
-  switchTest,
-  tabsTest,
-} from '@/__stories__/twenty-ui-gallery/utils/sandboxFailureTests';
+import { alertDialogTest } from '@/__stories__/twenty-ui-gallery/utils/alertDialogTest';
+import { menuTest } from '@/__stories__/twenty-ui-gallery/utils/menuTest';
+import { popoverTest } from '@/__stories__/twenty-ui-gallery/utils/popoverTest';
+import { selectTest } from '@/__stories__/twenty-ui-gallery/utils/selectTest';
+import { switchTest } from '@/__stories__/twenty-ui-gallery/utils/switchTest';
+import { tabsTest } from '@/__stories__/twenty-ui-gallery/utils/tabsTest';
 import { FrontComponentRenderer } from '@/host/components/FrontComponentRenderer';
 import { createTooltipTest } from '@/__stories__/twenty-ui-gallery/utils/createTooltipTest';
 
@@ -378,7 +376,7 @@ export const RadioGroupReact: Story = createGalleryStory({
   runtime: 'react',
   play: createRadioGroupTest({
     optionName: 'Daily',
-    activationClickReachesSandbox: true,
+    clickActivatesOption: true,
   }),
 });
 export const RadioGroupPreact: Story = createGalleryStory({
@@ -386,7 +384,7 @@ export const RadioGroupPreact: Story = createGalleryStory({
   runtime: 'preact',
   play: createRadioGroupTest({
     optionName: 'Daily',
-    activationClickReachesSandbox: true,
+    clickActivatesOption: true,
   }),
 });
 
@@ -395,7 +393,7 @@ export const CardPickerReact: Story = createGalleryStory({
   runtime: 'react',
   play: createRadioGroupTest({
     optionName: 'Pro plan',
-    activationClickReachesSandbox: false,
+    clickActivatesOption: false,
   }),
 });
 export const CardPickerPreact: Story = createGalleryStory({
@@ -403,7 +401,7 @@ export const CardPickerPreact: Story = createGalleryStory({
   runtime: 'preact',
   play: createRadioGroupTest({
     optionName: 'Pro plan',
-    activationClickReachesSandbox: true,
+    clickActivatesOption: true,
   }),
 });
 
