@@ -55,8 +55,9 @@ No stories are skipped or marked as expected-to-fail by the runner.
 The worker DOM now provides `Node.contains`, `compareDocumentPosition`,
 `getRootNode`, `Element.matches`, `closest`, a selector engine with
 pseudo-classes behind `querySelector`, local `focus`/`blur` with
-`document.activeElement`, and `"true"` for boolean ARIA attributes React writes
-as empty strings. `TooltipPreact` therefore covers hover opening and Escape
+`document.activeElement`, and property accessors for boolean ARIA attributes so
+React and Preact forward `true`/`false` instead of empty strings.
+`TooltipPreact` therefore covers hover opening and Escape
 dismissal. Pointer leave still needs document-level `mousemove` delivery for the
 safe polygon, and the compound tooltip's title and description are not covered
 yet.

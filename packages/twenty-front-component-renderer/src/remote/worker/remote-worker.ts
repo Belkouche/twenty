@@ -33,6 +33,7 @@ import { toGlobalScopeRecord } from '@/polyfills/utils/toGlobalScopeRecord';
 import { installStorageBridge } from '@/polyfills/storage/utils/installStorageBridge';
 import { installWindowAliasesPolyfill } from '@/polyfills/window-aliases/utils/installWindowAliasesPolyfill';
 import { exposeGlobals } from '@/utils/exposeGlobals';
+import { installAriaBooleanAccessors } from '@/remote/elements/utils/installAriaBooleanAccessors';
 import { installStylePropertyOnRemoteElements } from '@/remote/elements/utils/installStylePropertyOnRemoteElements';
 import { patchRemoteElementAttributes } from '@/remote/elements/utils/patchRemoteElementAttributes';
 import { resolveRemoteElementPrototypes } from '@/remote/elements/utils/resolveRemoteElementPrototypes';
@@ -48,6 +49,7 @@ import { createClonableErrorThreadSerialization } from '@/utils/clonable-error/c
 
 installStylePropertyOnRemoteElements();
 patchRemoteElementAttributes();
+installAriaBooleanAccessors();
 installErrorEventBridge();
 
 installDocumentGetElementById(document);
