@@ -70,6 +70,7 @@ describe('installSelectorMethods', () => {
       const textarea = document.createElement('html-textarea') as Element;
 
       expect(button.matches('button')).toBe(true);
+      expect(button.matches('html-button')).toBe(true);
       expect(button.matches('button,a[href],[role="button"]')).toBe(true);
       expect(textarea.matches('input,textarea,[contenteditable]')).toBe(true);
       expect(button.matches('textarea')).toBe(false);
@@ -120,6 +121,95 @@ describe('installSelectorMethods', () => {
       expect(list.matches(':focus-within')).toBe(true);
       expect(secondTab.matches(':focus')).toBe(false);
       expect(secondTab.matches(':focus-within')).toBe(false);
+      setActiveElement(secondTab);
+      expect(firstTab.matches(':focus')).toBe(false);
+      expect(secondTab.matches(':focus')).toBe(true);
+    });
+
+    it('should inherit fieldset disability except inside the first legend', () => {
+      const { document } = createSelectorFixture();
+      const outerFieldset = document.createElement('html-fieldset') as Element;
+      const firstLegend = document.createElement('html-legend') as Element;
+      const firstLegendInput = document.createElement('html-input') as Element;
+      const secondLegend = document.createElement('html-legend') as Element;
+      const secondLegendInput = document.createElement('html-input') as Element;
+      const nestedFieldset = document.createElement('html-fieldset') as Element;
+      const nestedLegend = document.createElement('html-legend') as Element;
+      const nestedInput = document.createElement('html-input') as Element;
+
+      outerFieldset.setAttribute('disabled', '');
+      nestedFieldset.setAttribute('disabled', '');
+      firstLegend.append(firstLegendInput);
+      secondLegend.append(secondLegendInput);
+      nestedLegend.append(nestedInput);
+      nestedFieldset.append(nestedLegend);
+      outerFieldset.append(firstLegend, secondLegend, nestedFieldset);
+
+      expect(firstLegendInput.matches(':disabled')).toBe(false);
+      expect(firstLegendInput.matches(':enabled')).toBe(true);
+      expect(secondLegendInput.matches(':disabled')).toBe(true);
+      expect(nestedInput.matches(':disabled')).toBe(true);
+      expect(firstLegend.matches(':enabled')).toBe(false);
+
+      outerFieldset.removeAttribute('disabled');
+      expect(secondLegendInput.matches(':disabled')).toBe(false);
+      expect(nestedInput.matches(':disabled')).toBe(false);
+    });
+
+    it('should respect disabled optgroups and selected option properties', () => {
+      const { document } = createSelectorFixture();
+      const group = document.createElement('html-optgroup') as Element;
+      const option = document.createElement('html-option') as HTMLOptionElement;
+      group.setAttribute('disabled', '');
+      group.append(option);
+      option.selected = true;
+
+      expect(option.matches(':disabled')).toBe(true);
+      expect(option.matches(':checked')).toBe(true);
+      option.selected = false;
+      expect(option.matches(':checked')).toBe(false);
+    });
+
+    it('should inherit disability for nested fieldsets but not options or optgroups', () => {
+      const { document } = createSelectorFixture();
+      const fieldset = document.createElement('html-fieldset') as Element;
+      const nestedFieldset = document.createElement('html-fieldset') as Element;
+      const select = document.createElement('html-select') as Element;
+      const group = document.createElement('html-optgroup') as Element;
+      const option = document.createElement('html-option') as Element;
+
+      fieldset.setAttribute('disabled', '');
+      group.append(option);
+      select.append(group);
+      fieldset.append(nestedFieldset, select);
+
+      expect(nestedFieldset.matches(':disabled')).toBe(true);
+      expect(select.matches(':disabled')).toBe(true);
+      expect(group.matches(':enabled')).toBe(true);
+      expect(option.matches(':enabled')).toBe(true);
+
+      select.setAttribute('disabled', '');
+      expect(group.matches(':disabled')).toBe(false);
+      expect(option.matches(':disabled')).toBe(false);
+    });
+
+    it('should anchor relative has selectors to the candidate', () => {
+      const { document } = createSelectorFixture();
+      const outer = document.createElement('div');
+      const candidate = document.createElement('section');
+      const sibling = document.createElement('p');
+      const descendant = document.createElement('span');
+      outer.setAttribute('class', 'outer');
+      candidate.append(descendant);
+      outer.append(candidate, sibling);
+
+      expect(candidate.matches(':has(> span)')).toBe(true);
+      expect(candidate.matches(':has(+ p)')).toBe(true);
+      expect(candidate.matches(':has(~ p)')).toBe(true);
+      expect(candidate.matches(':has(.outer span)')).toBe(false);
+      expect(candidate.matches(':has(section span)')).toBe(false);
+      descendant.remove();
+      expect(candidate.matches(':has(> span)')).toBe(false);
     });
 
     it('should evaluate structural pseudo-classes', () => {
@@ -163,7 +253,7 @@ describe('installSelectorMethods', () => {
       const { document } = createSelectorFixture();
       const { firstTab } = createTree(document);
 
-      expect(() => firstTab.matches(':nth-child(2)')).toThrow(
+      expect(() => firstTab.matches(':unknown-pseudo')).toThrow(
         expect.objectContaining({ name: 'SyntaxError' }),
       );
     });
@@ -193,6 +283,51 @@ describe('installSelectorMethods', () => {
   });
 
   describe('querySelector and querySelectorAll', () => {
+    it('should decode CSS escapes in identifiers and attribute strings', () => {
+      const { document } = createSelectorFixture();
+      const target = document.createElement('html-button') as Element;
+      target.setAttribute('id', '123');
+      target.setAttribute('class', 'sm:flex');
+      target.setAttribute('data-label', 'ABC');
+      document.body.append(target);
+
+      expect(document.querySelector(String.raw`#\31 23`)).toBe(target);
+      expect(document.querySelector(String.raw`.sm\:flex`)).toBe(target);
+      expect(document.querySelector(String.raw`[data-label="\41 BC"]`)).toBe(
+        target,
+      );
+    });
+
+    it.each([
+      '',
+      ' ',
+      'div,',
+      '> div',
+      'div >',
+      '[',
+      ':unknown-pseudo',
+      ':not(',
+      ':disabled(x)',
+    ])(
+      'should reject invalid selector %p through the DOM interface',
+      (selector) => {
+        const { document } = createSelectorFixture();
+
+        expect(() => document.querySelector(selector)).toThrow(
+          expect.objectContaining({ name: 'SyntaxError' }),
+        );
+      },
+    );
+
+    it('should resolve document scope and support structural selector arguments', () => {
+      const { document } = createSelectorFixture();
+      const { list, secondTab } = createTree(document);
+
+      expect(document.querySelector(':scope')).toBe(document.documentElement);
+      expect(list.querySelector('button:nth-child(2)')).toBe(secondTab);
+      expect(list.querySelector('body button:nth-child(2)')).toBe(secondTab);
+    });
+
     it('should query descendants in document order from an element', () => {
       const { document } = createSelectorFixture();
       const { list, firstTab, secondTab } = createTree(document);
@@ -235,7 +370,7 @@ describe('installSelectorMethods', () => {
       const { document } = createSelectorFixture();
       const details = document.createElement('details');
       const summary = document.createElement('summary');
-      const input = document.createElement('html-input');
+      const input = document.createElement('html-input') as Element;
       details.append(summary);
       document.body.append(details, input);
 

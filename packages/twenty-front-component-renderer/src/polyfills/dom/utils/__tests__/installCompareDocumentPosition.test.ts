@@ -44,15 +44,48 @@ describe('installCompareDocumentPosition', () => {
     expect(element.compareDocumentPosition(element)).toBe(0);
   });
 
-  it('should report disconnected nodes as implementation specific and preceding', () => {
+  it('should keep disconnected ordering stable and reverse it when arguments reverse', () => {
     const { document, nodeConstructor } = createPolyfillDocument();
     const first = document.createElement('div');
     const second = document.createElement('div');
 
-    expect(first.compareDocumentPosition(second)).toBe(
+    const firstComparison = first.compareDocumentPosition(second);
+    const reverseComparison = second.compareDocumentPosition(first);
+    const disconnectedFlags =
+      nodeConstructor.DOCUMENT_POSITION_DISCONNECTED |
+      nodeConstructor.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+
+    expect(firstComparison & disconnectedFlags).toBe(disconnectedFlags);
+    expect(reverseComparison & disconnectedFlags).toBe(disconnectedFlags);
+    expect(
+      Boolean(firstComparison & nodeConstructor.DOCUMENT_POSITION_PRECEDING),
+    ).toBe(
+      Boolean(reverseComparison & nodeConstructor.DOCUMENT_POSITION_FOLLOWING),
+    );
+    expect(first.compareDocumentPosition(second)).toBe(firstComparison);
+  });
+
+  it('should order disconnected trees consistently regardless of which descendants are compared', () => {
+    const { document, nodeConstructor } = createPolyfillDocument();
+    const roots = ['div', 'section', 'p'].map((tag) =>
+      document.createElement(tag),
+    );
+    const children = roots.map((root) => {
+      const child = document.createElement('span');
+      root.append(child);
+      return child;
+    });
+    const [first, second, third] = roots;
+    const direction = first.compareDocumentPosition(second);
+
+    expect(children[0].compareDocumentPosition(children[1])).toBe(direction);
+    expect(children[1].compareDocumentPosition(third)).toBe(
       nodeConstructor.DOCUMENT_POSITION_DISCONNECTED |
         nodeConstructor.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC |
-        nodeConstructor.DOCUMENT_POSITION_PRECEDING,
+        nodeConstructor.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(first.compareDocumentPosition(third)).toBe(
+      second.compareDocumentPosition(third),
     );
   });
 

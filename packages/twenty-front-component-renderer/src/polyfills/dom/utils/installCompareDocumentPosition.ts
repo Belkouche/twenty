@@ -12,10 +12,13 @@ type InstallCompareDocumentPositionInput = {
   nodePrototype: object;
 };
 
-const findDivergenceIndex = (
-  firstChain: object[],
-  secondChain: object[],
-): number => {
+const findDivergenceIndex = ({
+  firstChain,
+  secondChain,
+}: {
+  firstChain: object[];
+  secondChain: object[];
+}): number => {
   let index = 0;
 
   while (
@@ -29,7 +32,13 @@ const findDivergenceIndex = (
   return index;
 };
 
-const resolveChildIndex = (parent: object, child: object): number => {
+const resolveChildIndex = ({
+  parent,
+  child,
+}: {
+  parent: object;
+  child: object;
+}): number => {
   const childNodes = (parent as NodeWithChildNodes).childNodes;
 
   return isDefined(childNodes)
@@ -37,53 +46,79 @@ const resolveChildIndex = (parent: object, child: object): number => {
     : -1;
 };
 
-function compareDocumentPosition(this: object, otherNode: unknown): number {
-  if (otherNode === this) {
-    return 0;
-  }
-
-  const thisChain = collectAncestorChain(this);
-  const otherChain = collectAncestorChain(otherNode);
-
-  if (thisChain[0] !== otherChain[0]) {
-    return (
-      DOCUMENT_POSITION_FLAGS.DISCONNECTED |
-      DOCUMENT_POSITION_FLAGS.IMPLEMENTATION_SPECIFIC |
-      DOCUMENT_POSITION_FLAGS.PRECEDING
-    );
-  }
-
-  const divergenceIndex = findDivergenceIndex(thisChain, otherChain);
-
-  if (divergenceIndex === otherChain.length) {
-    return DOCUMENT_POSITION_FLAGS.CONTAINS | DOCUMENT_POSITION_FLAGS.PRECEDING;
-  }
-
-  if (divergenceIndex === thisChain.length) {
-    return (
-      DOCUMENT_POSITION_FLAGS.CONTAINED_BY | DOCUMENT_POSITION_FLAGS.FOLLOWING
-    );
-  }
-
-  const commonParent = thisChain[divergenceIndex - 1];
-  const thisBranchIndex = resolveChildIndex(
-    commonParent,
-    thisChain[divergenceIndex],
-  );
-  const otherBranchIndex = resolveChildIndex(
-    commonParent,
-    otherChain[divergenceIndex],
-  );
-
-  return otherBranchIndex < thisBranchIndex
-    ? DOCUMENT_POSITION_FLAGS.PRECEDING
-    : DOCUMENT_POSITION_FLAGS.FOLLOWING;
-}
-
 export const installCompareDocumentPosition = ({
   nodeConstructor,
   nodePrototype,
 }: InstallCompareDocumentPositionInput): void => {
+  const disconnectedRootOrder = new WeakMap<object, number>();
+  let nextRootOrder = 0;
+
+  const getRootOrder = (root: object): number => {
+    const existingOrder = disconnectedRootOrder.get(root);
+
+    if (isDefined(existingOrder)) {
+      return existingOrder;
+    }
+
+    const order = nextRootOrder++;
+    disconnectedRootOrder.set(root, order);
+
+    return order;
+  };
+
+  function compareDocumentPosition(this: object, otherNode: unknown): number {
+    if (otherNode === this) {
+      return 0;
+    }
+
+    const thisChain = collectAncestorChain(this);
+    const otherChain = collectAncestorChain(otherNode);
+
+    if (thisChain[0] !== otherChain[0]) {
+      const otherRootPrecedes =
+        getRootOrder(otherChain[0]) < getRootOrder(thisChain[0]);
+
+      return (
+        DOCUMENT_POSITION_FLAGS.DISCONNECTED |
+        DOCUMENT_POSITION_FLAGS.IMPLEMENTATION_SPECIFIC |
+        (otherRootPrecedes
+          ? DOCUMENT_POSITION_FLAGS.PRECEDING
+          : DOCUMENT_POSITION_FLAGS.FOLLOWING)
+      );
+    }
+
+    const divergenceIndex = findDivergenceIndex({
+      firstChain: thisChain,
+      secondChain: otherChain,
+    });
+
+    if (divergenceIndex === otherChain.length) {
+      return (
+        DOCUMENT_POSITION_FLAGS.CONTAINS | DOCUMENT_POSITION_FLAGS.PRECEDING
+      );
+    }
+
+    if (divergenceIndex === thisChain.length) {
+      return (
+        DOCUMENT_POSITION_FLAGS.CONTAINED_BY | DOCUMENT_POSITION_FLAGS.FOLLOWING
+      );
+    }
+
+    const commonParent = thisChain[divergenceIndex - 1];
+    const thisBranchIndex = resolveChildIndex({
+      parent: commonParent,
+      child: thisChain[divergenceIndex],
+    });
+    const otherBranchIndex = resolveChildIndex({
+      parent: commonParent,
+      child: otherChain[divergenceIndex],
+    });
+
+    return otherBranchIndex < thisBranchIndex
+      ? DOCUMENT_POSITION_FLAGS.PRECEDING
+      : DOCUMENT_POSITION_FLAGS.FOLLOWING;
+  }
+
   for (const [flagName, flagValue] of Object.entries(DOCUMENT_POSITION_FLAGS)) {
     for (const target of [nodeConstructor, nodePrototype]) {
       Object.defineProperty(target, `DOCUMENT_POSITION_${flagName}`, {

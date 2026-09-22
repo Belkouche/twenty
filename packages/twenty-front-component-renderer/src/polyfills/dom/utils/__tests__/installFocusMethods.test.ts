@@ -1,4 +1,4 @@
-import { Window } from '@remote-dom/polyfill';
+import { HOOKS, Window } from '@remote-dom/polyfill';
 
 import { createWorkerActiveElementStore } from '../createWorkerActiveElementStore';
 import { installDocumentActiveElement } from '../installDocumentActiveElement';
@@ -6,7 +6,9 @@ import { installFocusMethods } from '../installFocusMethods';
 
 const createPolyfillDocument = (): Document => {
   const polyfillWindow = new Window();
-  const activeElementStore = createWorkerActiveElementStore();
+  const activeElementStore = createWorkerActiveElementStore({
+    hooks: polyfillWindow[HOOKS],
+  });
 
   installFocusMethods({
     elementPrototype: polyfillWindow.Element.prototype,
@@ -90,6 +92,44 @@ describe('installFocusMethods', () => {
     button.focus();
 
     expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should clear focus synchronously when a subtree is removed and reinserted', () => {
+    const document = createPolyfillDocument();
+    const dialog = document.createElement('div');
+    const button = document.createElement('button');
+    dialog.append(button);
+    document.body.append(dialog);
+    button.focus();
+    dialog.remove();
+    document.body.append(dialog);
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should keep a detached element blurred when it is reinserted', () => {
+    const document = createPolyfillDocument();
+    const button = document.createElement('button');
+    document.body.append(button);
+    button.focus();
+    button.remove();
+    expect(document.activeElement).toBe(document.body);
+    button.blur();
+    document.body.append(button);
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('should ignore a focus call on a detached element even if it is inserted later', () => {
+    const document = createPolyfillDocument();
+    const active = document.createElement('button');
+    const detached = document.createElement('button');
+    document.body.append(active);
+    active.focus();
+    detached.focus();
+    document.body.append(detached);
+
+    expect(document.activeElement).toBe(active);
   });
 
   it('should ignore blur on an element that is not active', () => {

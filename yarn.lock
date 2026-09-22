@@ -50035,6 +50035,8 @@ __metadata:
     "@types/react-dom": "npm:^19.2.0"
     "@typescript/native-preview": "npm:^7.0.0-dev.20260116.1"
     "@vitest/browser-playwright": "npm:^4.1.0"
+    css-select: "npm:^5.1.0"
+    css-what: "npm:^6.1.0"
     monaco-editor: "npm:0.52.2"
     playwright: "npm:^1.60.0"
     prettier: "npm:^3.1.1"
